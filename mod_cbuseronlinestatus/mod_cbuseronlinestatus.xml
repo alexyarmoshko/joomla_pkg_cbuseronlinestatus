@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_CBUSERONLINESTATUS</name>
+    <author>Yak Shaver</author>
+    <creationDate>2026-02-21</creationDate>
+    <copyright>(C) 2026 Yak Shaver https://www.kayakshaver.com</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE</license>
+    <authorEmail>me@kayakshaver.com</authorEmail>
+    <authorUrl>https://www.kayakshaver.com</authorUrl>
+    <version>1.0.0</version>
+    <description>MOD_CBUSERONLINESTATUS_XML_DESCRIPTION</description>
+    <namespace path="src">Joomla\Module\Cbuseronlinestatus</namespace>
+
+    <files>
+        <folder module="mod_cbuseronlinestatus">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+        <filename>LICENSE</filename>
+        <filename>index.html</filename>
+    </files>
+
+    <languages>
+        <language tag="en-GB">language/en-GB/mod_cbuseronlinestatus.ini</language>
+        <language tag="en-GB">language/en-GB/mod_cbuseronlinestatus.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic" label="COM_MODULES_BASIC_FIELDSET_LABEL">
+                <field
+                    name="mode"
+                    type="list"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_MODE_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_MODE_DESC"
+                    default="1"
+                    filter="integer"
+                    validate="options"
+                >
+                    <option value="1">MOD_CBUSERONLINESTATUS_OPTION_ONLINE_USERS</option>
+                    <option value="9">MOD_CBUSERONLINESTATUS_OPTION_ONLINE_CONNECTIONS</option>
+                    <option value="6">MOD_CBUSERONLINESTATUS_OPTION_ONLINE_STATISTICS</option>
+                    <option value="7">MOD_CBUSERONLINESTATUS_OPTION_USER_CENSUS</option>
+                </field>
+
+                <field
+                    name="online_timeout"
+                    type="number"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_DESC"
+                    default="1800"
+                    filter="integer"
+                    validate="number"
+                    min="60"
+                />
+
+                <field
+                    name="limit"
+                    type="number"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_LIMIT_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_LIMIT_DESC"
+                    default="30"
+                    filter="integer"
+                    validate="number"
+                    min="1"
+                    showon="mode:1,9"
+                />
+
+                <field
+                    name="exclude"
+                    type="text"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_DESC"
+                    default=""
+                    filter="string"
+                />
+
+                <field
+                    name="exclude_self"
+                    type="radio"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_SELF_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_SELF_DESC"
+                    default="0"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                    name="pretext"
+                    type="textarea"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_PRETEXT_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_PRETEXT_DESC"
+                    default=""
+                    filter="raw"
+                    rows="3"
+                />
+
+                <field
+                    name="posttext"
+                    type="textarea"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_POSTTEXT_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_POSTTEXT_DESC"
+                    default=""
+                    filter="raw"
+                    rows="3"
+                />
+
+                <field
+                    name="usertext"
+                    type="textarea"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_USERTEXT_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_USERTEXT_DESC"
+                    default=""
+                    filter="raw"
+                    rows="3"
+                    showon="mode:1,9"
+                />
+
+                <field
+                    name="label"
+                    type="list"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_LABEL_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_LABEL_DESC"
+                    default="1"
+                    filter="integer"
+                    validate="options"
+                    showon="mode:6,7"
+                >
+                    <option value="1">MOD_CBUSERONLINESTATUS_OPTION_TEXT_ONLY</option>
+                    <option value="2">MOD_CBUSERONLINESTATUS_OPTION_ICON_ONLY</option>
+                    <option value="3">MOD_CBUSERONLINESTATUS_OPTION_TEXT_AND_ICON</option>
+                </field>
+
+                <field
+                    name="separator"
+                    type="text"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_SEPARATOR_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_SEPARATOR_DESC"
+                    default=","
+                    filter="string"
+                    showon="mode:6,7"
+                />
+
+                <field
+                    name="maincbtpl"
+                    type="radio"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_MAINCBTPL_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_MAINCBTPL_DESC"
+                    default="1"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                    name="cb_plugins"
+                    type="radio"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_CB_PLUGINS_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_CB_PLUGINS_DESC"
+                    default="0"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="advanced">
+                <field
+                    name="layout"
+                    type="modulelayout"
+                    label="JFIELD_ALT_LAYOUT_LABEL"
+                    class="form-select"
+                    validate="moduleLayout"
+                />
+
+                <field
+                    name="moduleclass_sfx"
+                    type="textarea"
+                    label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                    rows="3"
+                    validate="CssIdentifier"
+                />
+
+                <field
+                    name="cache"
+                    type="list"
+                    label="COM_MODULES_FIELD_CACHING_LABEL"
+                    default="0"
+                    filter="integer"
+                    validate="options"
+                >
+                    <option value="1">JGLOBAL_USE_GLOBAL</option>
+                    <option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
+                </field>
+
+                <field
+                    name="cache_time"
+                    type="number"
+                    label="COM_MODULES_FIELD_CACHE_TIME_LABEL"
+                    default="900"
+                    filter="integer"
+                />
+
+                <field
+                    name="cachemode"
+                    type="hidden"
+                    default="static"
+                >
+                    <option value="static"></option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+
+    <updateservers>
+        <server type="extension" name="Yak Shaver CB User Online Status Module Updates">
+            https://raw.githubusercontent.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/refs/heads/main/mod_cbuseronlinestatus.update.xml</server>
+    </updateservers>
+</extension>
