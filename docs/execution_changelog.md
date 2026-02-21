@@ -1,5 +1,16 @@
 # Execution Changelog — pkg_cbuseronlinestatus
 
+## 2026-02-21 (review v3)
+
+- Completed review v3 (`docs/execution_plan.review.v3.md`) against live code, project rules, and prior reviews v1/v2.
+- Review v3 found no architecture blockers; 3 remaining findings (1 high, 1 medium, 1 low).
+- Amended execution plan to address all 3 findings:
+  - (High) Added `is_readable($path)` guard to autoloader before `require` calls. Raw `require` on a missing file causes a PHP fatal, not a silent fallback. The guard ensures CB's own autoloader handles the class when override files do not yet exist (Milestone 1 timeframe). Updated: Milestone 1 narrative, Milestone 3 code snippet (now uses `$map` + `is_readable` pattern), and Interfaces section autoloader method description.
+  - (Medium) Replaced UTF-8 box-drawing characters in directory tree with plain ASCII (`|--`, `` `-- ``). UTF-8 box chars rendered as mojibake (`ÃÄÄ`, `ÀÄÄ`) on some Windows tools interpreting the file as Windows-1252.
+  - (Low) Normalized MessageTable line-count from "639 lines" to "~640 lines" across all occurrences (Surprises & Discoveries, Decision Log, Milestone 3). Added note that `wc -l` returns 639 while PowerShell may report 640 due to trailing-newline handling.
+- Added 2 new decisions to Decision Log (autoloader guard, ASCII tree).
+- Updated Progress and Revision History sections.
+
 ## 2026-02-21 (review v2)
 
 - Completed review v2 (`docs/execution_plan.review.v2.md`) against live code, project rules, and review v1 baseline.

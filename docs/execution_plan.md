@@ -16,7 +16,8 @@ To verify: install the package, revert the two patched CB files, and observe tha
 
 - [x] (2026-02-20) Initial execution plan drafted.
 - [x] (2026-02-21) Review v1 completed; plan amended to address all findings.
-- [x] (2026-02-21) Review v2 completed; plan amended to address 5 of 6 findings (finding #4 verified as false positive — 639 lines confirmed).
+- [x] (2026-02-21) Review v2 completed; plan amended to address 5 of 6 findings (finding #4 verified as false positive — ~640 lines confirmed).
+- [x] (2026-02-21) Review v3 completed; plan amended to address all 3 findings (autoloader guard, ASCII tree, line-count normalization).
 - [ ] Milestone 1: System plugin `plg_system_cbuseronlinestatus` — project scaffolding, class autoloader for StatusField and MessageTable overrides.
 - [ ] Milestone 2: StatusField override class with configurable timeout.
 - [ ] Milestone 3: MessageTable override for PMS notification fix (mandatory for v1).
@@ -35,8 +36,8 @@ To verify: install the package, revert the two patched CB files, and observe tha
 - Observation: The CB module uses `shared_session` branching for `client_id` in every session query — not a hardcoded `= 0`. This is critical for shared-session Joomla deployments.
   Evidence: `$_CB_framework->getCfg('shared_session') ? " IS NULL" : " = 0"` appears at lines 128, 187, 250, 262, 273, and 397 of `mod_comprofileronline.php`.
 
-- Observation: `MessageTable.php` is 639 lines, well above the initially estimated ~200 line threshold for "feasible full override". The override is still viable but carries higher drift risk on CB updates.
-  Evidence: `wc -l MessageTable.php` returns 639 (Bash/WSL). PowerShell equivalent: `(Get-Content MessageTable.php | Measure-Object -Line).Lines`.
+- Observation: `MessageTable.php` is ~640 lines, well above the initially estimated ~200 line threshold for "feasible full override". The override is still viable but carries higher drift risk on CB updates.
+  Evidence: `wc -l MessageTable.php` returns 639 (Bash/WSL); PowerShell `(Get-Content MessageTable.php | Measure-Object -Line).Lines` may report 640 depending on trailing-newline handling. Both confirm ~640 lines.
 
 ## Decision Log
 
@@ -65,7 +66,7 @@ To verify: install the package, revert the two patched CB files, and observe tha
   Date/Author: 2026-02-20 / AI
 
 - Decision: PMS MessageTable override is mandatory for v1. No manual-patch fallback.
-  Rationale: Review v1 identified the "maybe manual patch" language as decision-incomplete. The PMS notification fix is a core goal of the package. Although the class is 639 lines, the full-body override is the only viable approach. Drift risk is managed by documenting an upgrade diff check per CB release in the README.
+  Rationale: Review v1 identified the "maybe manual patch" language as decision-incomplete. The PMS notification fix is a core goal of the package. Although the class is ~640 lines, the full-body override is the only viable approach. Drift risk is managed by documenting an upgrade diff check per CB release in the README.
   Date/Author: 2026-02-21 / AI (review v1)
 
 - Decision: Preserve `shared_session` branching (`client_id IS NULL` vs `= 0`) in all module session queries.
@@ -91,6 +92,14 @@ To verify: install the package, revert the two patched CB files, and observe tha
 - Decision: Milestone 1 autoloader contains FQCN routing logic for both overrides, but override files are not created until Milestones 2 and 3.
   Rationale: Review v2 flagged a contradiction between "not yet loading" and the autoloader description. Clarified that the autoloader code exists but the target files do not, so CB's own autoloader loads the originals until override files are present.
   Date/Author: 2026-02-21 / AI (review v2)
+
+- Decision: Guard autoloader `require` calls with `is_readable($path)` before including override files.
+  Rationale: Review v3 identified that raw `require` on a missing file causes a fatal error, not a silent fallback. The `is_readable` guard ensures CB's own autoloader handles the class if the override file does not exist (e.g., during Milestone 1 before override files are created).
+  Date/Author: 2026-02-21 / AI (review v3)
+
+- Decision: Use plain ASCII tree characters (`|--`, `` `-- ``) in the directory structure diagram instead of UTF-8 box-drawing characters.
+  Rationale: Review v3 confirmed that UTF-8 box-drawing chars render as mojibake on some Windows tools (Windows-1252 interpretation). Plain ASCII ensures readability across all editors and terminals.
+  Date/Author: 2026-02-21 / AI (review v3)
 
 ## Outcomes & Retrospective
 
@@ -152,56 +161,56 @@ The work is organized as a monorepo at `~\repos\joomla_pkg_cbuseronlinestatus\` 
 
 ```text
     joomla_pkg_cbuseronlinestatus/
-    ├── docs/
-    │   ├── execution_plan.md          (this file)
-    │   └── execution_changelog.md
-    ├── plg_system_cbuseronlinestatus/
-    │   ├── cbuseronlinestatus.xml      (plugin manifest)
-    │   ├── services/
-    │   │   └── provider.php
-    │   ├── src/
-    │   │   ├── Extension/
-    │   │   │   └── CbUserOnlineStatus.php   (main plugin class)
-    │   │   ├── Field/
-    │   │   │   └── StatusField.php          (StatusField override)
-    │   │   └── Table/
-    │   │       └── MessageTable.php         (MessageTable override)
-    │   ├── language/
-    │   │   └── en-GB/
-    │   │       ├── plg_system_cbuseronlinestatus.ini
-    │   │       └── plg_system_cbuseronlinestatus.sys.ini
-    │   ├── index.html
-    │   └── LICENSE
-    ├── mod_cbuseronlinestatus/
-    │   ├── mod_cbuseronlinestatus.xml  (module manifest)
-    │   ├── services/
-    │   │   └── provider.php
-    │   ├── src/
-    │   │   ├── Dispatcher/
-    │   │   │   └── Dispatcher.php
-    │   │   └── Helper/
-    │   │       └── CbUserOnlineStatusHelper.php
-    │   ├── tmpl/
-    │   │   ├── default.php             (Online Users list)
-    │   │   ├── default_statistics.php  (Online Statistics)
-    │   │   └── default_census.php      (User Census)
-    │   ├── language/
-    │   │   └── en-GB/
-    │   │       ├── mod_cbuseronlinestatus.ini
-    │   │       └── mod_cbuseronlinestatus.sys.ini
-    │   ├── index.html
-    │   └── LICENSE
-    ├── pkg_cbuseronlinestatus.xml      (package manifest)
-    ├── Makefile                         (top-level: builds plugin, module, package ZIPs)
-    ├── installation/                    (build output)
-    ├── LICENSE
-    ├── README.md
-    └── RELEASE.md
+    |-- docs/
+    |   |-- execution_plan.md          (this file)
+    |   `-- execution_changelog.md
+    |-- plg_system_cbuseronlinestatus/
+    |   |-- cbuseronlinestatus.xml      (plugin manifest)
+    |   |-- services/
+    |   |   `-- provider.php
+    |   |-- src/
+    |   |   |-- Extension/
+    |   |   |   `-- CbUserOnlineStatus.php   (main plugin class)
+    |   |   |-- Field/
+    |   |   |   `-- StatusField.php          (StatusField override)
+    |   |   `-- Table/
+    |   |       `-- MessageTable.php         (MessageTable override)
+    |   |-- language/
+    |   |   `-- en-GB/
+    |   |       |-- plg_system_cbuseronlinestatus.ini
+    |   |       `-- plg_system_cbuseronlinestatus.sys.ini
+    |   |-- index.html
+    |   `-- LICENSE
+    |-- mod_cbuseronlinestatus/
+    |   |-- mod_cbuseronlinestatus.xml  (module manifest)
+    |   |-- services/
+    |   |   `-- provider.php
+    |   |-- src/
+    |   |   |-- Dispatcher/
+    |   |   |   `-- Dispatcher.php
+    |   |   `-- Helper/
+    |   |       `-- CbUserOnlineStatusHelper.php
+    |   |-- tmpl/
+    |   |   |-- default.php             (Online Users list)
+    |   |   |-- default_statistics.php  (Online Statistics)
+    |   |   `-- default_census.php      (User Census)
+    |   |-- language/
+    |   |   `-- en-GB/
+    |   |       |-- mod_cbuseronlinestatus.ini
+    |   |       `-- mod_cbuseronlinestatus.sys.ini
+    |   |-- index.html
+    |   `-- LICENSE
+    |-- pkg_cbuseronlinestatus.xml      (package manifest)
+    |-- Makefile                         (top-level: builds plugin, module, package ZIPs)
+    |-- installation/                    (build output)
+    |-- LICENSE
+    |-- README.md
+    `-- RELEASE.md
 ```
 
 ### Milestone 1: System plugin scaffolding
 
-After this milestone, the plugin project structure exists with all boilerplate files, the Joomla manifest, the DI service provider, and the main plugin class. The plugin subscribes to `onAfterInitialise` and registers a prepended PHP autoloader. The autoloader contains the FQCN routing logic for both `StatusField` and `MessageTable`, but the actual override class files do not exist yet — they are created in Milestones 2 and 3 respectively. Until those files are created, the `require` calls in the autoloader will fail silently (file not found), meaning the original CB classes load normally via CB's own autoloader.
+After this milestone, the plugin project structure exists with all boilerplate files, the Joomla manifest, the DI service provider, and the main plugin class. The plugin subscribes to `onAfterInitialise` and registers a prepended PHP autoloader. The autoloader contains the FQCN routing logic for both `StatusField` and `MessageTable`, but the actual override class files do not exist yet — they are created in Milestones 2 and 3 respectively. The autoloader guards each `require` with `is_readable($path)` before including the file; if the file does not exist, the autoloader returns without loading anything, and CB's own autoloader loads the original class as usual.
 
 Files to create:
 
@@ -250,7 +259,7 @@ After this milestone, the PMS (Private Messaging System) notification logic corr
 
 The autoloader in `CbUserOnlineStatus.php` is extended to also intercept `CB\Plugin\PMS\Table\MessageTable`. The FQCN is confirmed from the file header: `namespace CB\Plugin\PMS\Table;` in `components/com_comprofiler/plugin/user/plug_pms_mypmspro/library/Table/MessageTable.php`.
 
-The class is 639 lines, which makes a full-body copy fragile against upstream CB updates. However, it is the only viable approach because `store()` cannot be overridden via inheritance without a circular autoloader dependency (the override must replace, not extend, the original). To manage the drift risk, the README must document that after each CB update the override file should be diffed against the new upstream `MessageTable.php` and the single-line change reapplied if needed.
+The class is ~640 lines, which makes a full-body copy fragile against upstream CB updates. However, it is the only viable approach because `store()` cannot be overridden via inheritance without a circular autoloader dependency (the override must replace, not extend, the original). To manage the drift risk, the README must document that after each CB update the override file should be diffed against the new upstream `MessageTable.php` and the single-line change reapplied if needed.
 
 File to create:
 
@@ -273,10 +282,12 @@ is replaced with:
 The autoloader method in `CbUserOnlineStatus.php` must check for both FQCNs:
 
 ```php
-    if ( $class === 'CB\\Plugin\\Core\\Field\\StatusField' ) {
-        require __DIR__ . '/../Field/StatusField.php';
-    } elseif ( $class === 'CB\\Plugin\\PMS\\Table\\MessageTable' ) {
-        require __DIR__ . '/../Table/MessageTable.php';
+    $map = [
+        'CB\\Plugin\\Core\\Field\\StatusField' => __DIR__ . '/../Field/StatusField.php',
+        'CB\\Plugin\\PMS\\Table\\MessageTable' => __DIR__ . '/../Table/MessageTable.php',
+    ];
+    if ( isset( $map[$class] ) && is_readable( $map[$class] ) ) {
+        require $map[$class];
     }
 ```
 
@@ -664,8 +675,10 @@ In `plg_system_cbuseronlinestatus/src/Extension/CbUserOnlineStatus.php`, define:
         // Returns self::$onlineTimeout (default 1800 if plugin not yet loaded).
 
         public function overrideAutoloader(string $class): void
-        // If $class === 'CB\\Plugin\\Core\\Field\\StatusField', requires src/Field/StatusField.php.
-        // If $class === 'CB\\Plugin\\PMS\\Table\\MessageTable', requires src/Table/MessageTable.php.
+        // Maps FQCN to override file path. Guards with is_readable() before require.
+        // If $class === 'CB\\Plugin\\Core\\Field\\StatusField' and file is readable, requires src/Field/StatusField.php.
+        // If $class === 'CB\\Plugin\\PMS\\Table\\MessageTable' and file is readable, requires src/Table/MessageTable.php.
+        // If the file does not exist, returns without loading — CB's own autoloader handles it.
     }
 ```
 
@@ -740,4 +753,5 @@ In `mod_cbuseronlinestatus/src/Dispatcher/Dispatcher.php`, define:
 ## Revision History
 
 - 2026-02-21: Plan amended per review v1 (`docs/execution_plan.review.v1.md`). Addressed 3 blockers (outdated baseline, hardcoded `client_id`, PMS ambiguity), 2 high-severity items (plugin hook compatibility, non-deterministic verification), and 1 medium (formatting/hygiene). All review findings resolved. See `docs/execution_changelog.md` for full details.
-- 2026-02-21: Plan amended per review v2 (`docs/execution_plan.review.v2.md`). Addressed 5 of 6 findings: removed PMS conditional wording in Artifacts, added `autoloadLanguage` to plugin class spec, resolved Milestone 1 sequencing contradiction, normalized shell commands with PowerShell variants, added SQL value hardening for timeout/exclude. Finding #4 (line-count discrepancy) verified as false positive — `wc -l` confirms 639 lines. See `docs/execution_changelog.md` for full details.
+- 2026-02-21: Plan amended per review v2 (`docs/execution_plan.review.v2.md`). Addressed 5 of 6 findings: removed PMS conditional wording in Artifacts, added `autoloadLanguage` to plugin class spec, resolved Milestone 1 sequencing contradiction, normalized shell commands with PowerShell variants, added SQL value hardening for timeout/exclude. Finding #4 (line-count discrepancy) verified as false positive — `wc -l` confirms ~640 lines. See `docs/execution_changelog.md` for full details.
+- 2026-02-21: Plan amended per review v3 (`docs/execution_plan.review.v3.md`). Addressed all 3 findings: added `is_readable` guard to autoloader (prevents fatal on missing override files), replaced UTF-8 box-drawing tree with plain ASCII, normalized MessageTable line count to ~640. See `docs/execution_changelog.md` for full details.
