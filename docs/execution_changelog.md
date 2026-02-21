@@ -1,5 +1,12 @@
 # Execution Changelog — pkg_cbuseronlinestatus
 
+## 2026-02-21 (review v6)
+
+- Completed review v6 (`docs/execution_plan.review.v6.md`). No blockers; 1 low-severity reproducibility issue.
+- Amended execution plan to address the finding:
+  - (Low) Milestone 9 revert verification commands now use full relative paths from the site root (`components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.php` and `modules/mod_comprofileronline/mod_comprofileronline.php`) instead of bare filenames. Previously the commands were not copy/paste-runnable from the production repo root without manual `cd`.
+- Updated Progress and Revision History sections.
+
 ## 2026-02-21 (review v5)
 
 - Completed review v5 (`docs/execution_plan.review.v5.md`). No blockers; 2 medium and 1 low validation-command correctness issues.
