@@ -1,5 +1,14 @@
 # Execution Changelog — pkg_cbuseronlinestatus
 
+## 2026-02-21 (review v5)
+
+- Completed review v5 (`docs/execution_plan.review.v5.md`). No blockers; 2 medium and 1 low validation-command correctness issues.
+- Amended execution plan to address all 3 findings:
+  - (Medium) V1 baseline check for StatusField now searches for `time() - $lastTime` instead of `UNIX_TIMESTAMP`. The StatusField patch uses PHP's `time()` function, not SQL `UNIX_TIMESTAMP()` — the previous pattern would never match, making the baseline check a false pass.
+  - (Medium) Milestone 9 revert check for StatusField now searches for `time() - $lastTime` instead of `UNIX_TIMESTAMP`. Same root cause as above — the revert check could not distinguish patched from original because the search pattern was absent in both versions.
+  - (Low) Milestone 9 revert check for module now searches for the exact expression `UNIX_TIMESTAMP() - time <= 1800` instead of the broad token `1800`. The broad token could match unrelated occurrences, producing a noisy/unreliable revert check.
+- Updated Progress and Revision History sections.
+
 ## 2026-02-21 (review v4)
 
 - Completed review v4 (`docs/execution_plan.review.v4.md`). No blocking findings; 2 low-severity wording/ordering issues.

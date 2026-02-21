@@ -19,6 +19,7 @@ To verify: install the package, revert the two patched CB files, and observe tha
 - [x] (2026-02-21) Review v2 completed; plan amended to address 5 of 6 findings (finding #4 verified as false positive — ~640 lines confirmed).
 - [x] (2026-02-21) Review v3 completed; plan amended to address all 3 findings (autoloader guard, ASCII tree, line-count normalization).
 - [x] (2026-02-21) Review v4 completed; plan amended to address both low-severity findings (autoloader wording, line-count evidence order).
+- [x] (2026-02-21) Review v5 completed; plan amended to address all 3 findings (V1 baseline pattern, Milestone 9 revert checks).
 - [ ] Milestone 1: System plugin `plg_system_cbuseronlinestatus` — project scaffolding, class autoloader for StatusField and MessageTable overrides.
 - [ ] Milestone 2: StatusField override class with configurable timeout.
 - [ ] Milestone 3: MessageTable override for PMS notification fix (mandatory for v1).
@@ -477,8 +478,8 @@ Validation matrix — each test must pass before the milestone is considered com
 
 **V1 — Baseline check.** Before any testing, confirm the current patched state of the live CB files. From the site root, run one of:
 
-- Bash/WSL: `grep -n 'UNIX_TIMESTAMP' components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.php` and `grep -n 'UNIX_TIMESTAMP' modules/mod_comprofileronline/mod_comprofileronline.php`
-- PowerShell: `Select-String -Pattern 'UNIX_TIMESTAMP' -Path components\com_comprofiler\plugin\user\plug_cbcore\library\Field\StatusField.php` and `Select-String -Pattern 'UNIX_TIMESTAMP' -Path modules\mod_comprofileronline\mod_comprofileronline.php`
+- Bash/WSL: `grep -n 'time() - $lastTime' components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.php` and `grep -n 'UNIX_TIMESTAMP' modules/mod_comprofileronline/mod_comprofileronline.php`
+- PowerShell: `Select-String -Pattern 'time\(\) - \$lastTime' -Path components\com_comprofiler\plugin\user\plug_cbcore\library\Field\StatusField.php` and `Select-String -Pattern 'UNIX_TIMESTAMP' -Path modules\mod_comprofileronline\mod_comprofileronline.php`
 
 Expected: StatusField.php line 43 contains `(time() - $lastTime)<=1800`, mod_comprofileronline.php line 400 contains `UNIX_TIMESTAMP() - time <= 1800`. This confirms the two already-patched locations.
 
@@ -511,8 +512,8 @@ Steps:
    - Copy `components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.original.php` to `components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.php`
 
 2. Confirm the originals are restored by checking that the timeout patches are no longer present. Run one of:
-   - Bash/WSL: `grep -c 'UNIX_TIMESTAMP' StatusField.php` should return 0, and `grep -c '1800' mod_comprofileronline.php` on the relevant line should return 0.
-   - PowerShell: `(Select-String -Pattern 'UNIX_TIMESTAMP' -Path StatusField.php).Count` should return 0, and `(Select-String -Pattern '1800' -Path mod_comprofileronline.php).Count` on the relevant line should return 0.
+   - Bash/WSL: `grep -c 'time() - $lastTime' StatusField.php` should return 0, and `grep -c 'UNIX_TIMESTAMP() - time <= 1800' mod_comprofileronline.php` should return 0.
+   - PowerShell: `(Select-String -Pattern 'time\(\) - \$lastTime' -Path StatusField.php).Count` should return 0, and `(Select-String -Pattern 'UNIX_TIMESTAMP\(\) - time <= 1800' -Path mod_comprofileronline.php).Count` should return 0.
 
 3. Refresh the site and re-run validation tests V2 and V8 from Milestone 8. The online-status behavior must remain correct — the package's autoloader and module now handle the timeout, not the file patches. If either test fails, the package is not working correctly and the revert should be rolled back.
 
@@ -757,3 +758,4 @@ In `mod_cbuseronlinestatus/src/Dispatcher/Dispatcher.php`, define:
 - 2026-02-21: Plan amended per review v2 (`docs/execution_plan.review.v2.md`). Addressed 5 of 6 findings: removed PMS conditional wording in Artifacts, added `autoloadLanguage` to plugin class spec, resolved Milestone 1 sequencing contradiction, normalized shell commands with PowerShell variants, added SQL value hardening for timeout/exclude. Finding #4 (line-count discrepancy) verified as false positive — `wc -l` confirms ~640 lines. See `docs/execution_changelog.md` for full details.
 - 2026-02-21: Plan amended per review v3 (`docs/execution_plan.review.v3.md`). Addressed all 3 findings: added `is_readable` guard to autoloader (prevents fatal on missing override files), replaced UTF-8 box-drawing tree with plain ASCII, normalized MessageTable line count to ~640. See `docs/execution_changelog.md` for full details.
 - 2026-02-21: Plan amended per review v4 (`docs/execution_plan.review.v4.md`). Addressed both low-severity findings: fixed autoloader "returns true" wording to match void/guard-based design, reordered line-count evidence to list PowerShell first. See `docs/execution_changelog.md` for full details.
+- 2026-02-21: Plan amended per review v5 (`docs/execution_plan.review.v5.md`). Addressed all 3 findings: fixed V1 baseline to search `time() - $lastTime` in StatusField (not `UNIX_TIMESTAMP`), fixed Milestone 9 revert to use same diagnostic pattern, tightened module revert check to exact `UNIX_TIMESTAMP() - time <= 1800` expression. See `docs/execution_changelog.md` for full details.
