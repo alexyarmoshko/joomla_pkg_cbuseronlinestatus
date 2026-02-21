@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="package" method="upgrade">
+    <name>PKG_CBUSERONLINESTATUS</name>
+    <packagename>cbuseronlinestatus</packagename>
+    <author>Yak Shaver</author>
+    <creationDate>2026-02-21</creationDate>
+    <copyright>(C) 2026 Yak Shaver https://www.kayakshaver.com</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE</license>
+    <authorEmail>me@kayakshaver.com</authorEmail>
+    <authorUrl>https://www.kayakshaver.com</authorUrl>
+    <version>1.0.0</version>
+    <description>PKG_CBUSERONLINESTATUS_XML_DESCRIPTION</description>
+    <files folder="installation">
+        <file type="plugin" group="system" id="cbuseronlinestatus">plg_system_cbuseronlinestatus.zip</file>
+        <file type="module" client="site" id="mod_cbuseronlinestatus">mod_cbuseronlinestatus.zip</file>
+    </files>
+    <languages>
+        <language tag="en-GB">language/en-GB/pkg_cbuseronlinestatus.sys.ini</language>
+    </languages>
+    <updateservers>
+        <server type="extension" name="Yak Shaver CB User Online Status Package Updates">
+            https://raw.githubusercontent.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/refs/heads/main/pkg_cbuseronlinestatus.update.xml</server>
+    </updateservers>
+</extension>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<updates>
+    <update>
+        <name>Yak Shaver CB User Online Status Package</name>
+        <description>Fixes stale online-status indicators in Community Builder (plugin + module
+            bundle)</description>
+        <element>pkg_cbuseronlinestatus</element>
+        <type>package</type>
+        <version>1.0.0</version>
+        <downloads>
+            <downloadurl type="full" format="zip">
+                https://github.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/releases/download/v1.0.0/pkg_cbuseronlinestatus-1.0.0.zip</downloadurl>
+        </downloads>
+        <sha256></sha256>
+        <targetplatform name="joomla" version="(5\.[0-9])" />
+        <php_minimum>8.1.0</php_minimum>
+    </update>
+</updates>

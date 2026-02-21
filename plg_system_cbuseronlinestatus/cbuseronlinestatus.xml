@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="plugin" group="system" method="upgrade">
+	<name>PLG_SYSTEM_CBUSERONLINESTATUS</name>
+	<author>Yak Shaver</author>
+	<creationDate>2026-02-21</creationDate>
+	<copyright>(C) 2026 Yak Shaver https://www.kayakshaver.com</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE</license>
+	<authorEmail>me@kayakshaver.com</authorEmail>
+	<authorUrl>https://www.kayakshaver.com</authorUrl>
+	<version>1.0.0</version>
+	<description>PLG_SYSTEM_CBUSERONLINESTATUS_XML_DESCRIPTION</description>
+	<namespace path="src">YakShaver\Plugin\System\Cbuseronlinestatus</namespace>
+
+	<files>
+		<folder plugin="cbuseronlinestatus">services</folder>
+		<folder>src</folder>
+		<filename>LICENSE</filename>
+		<filename>index.html</filename>
+	</files>
+
+	<languages folder="language">
+		<language tag="en-GB">en-GB/plg_system_cbuseronlinestatus.ini</language>
+		<language tag="en-GB">en-GB/plg_system_cbuseronlinestatus.sys.ini</language>
+	</languages>
+
+	<config>
+		<fields name="params">
+			<fieldset name="basic" label="COM_PLUGINS_BASIC_FIELDSET_LABEL">
+				<field
+					name="online_timeout"
+					type="number"
+					label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_LABEL"
+					description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_DESC"
+					default="1800"
+					filter="integer"
+					validate="number"
+					min="60"
+				/>
+			</fieldset>
+		</fields>
+	</config>
+
+	<updateservers>
+		<server type="extension" name="Yak Shaver CB User Online Status Plugin Updates">
+			https://raw.githubusercontent.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/refs/heads/main/plg_system_cbuseronlinestatus.update.xml</server>
+	</updateservers>
+</extension>
