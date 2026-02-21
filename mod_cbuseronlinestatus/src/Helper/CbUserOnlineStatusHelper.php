@@ -274,7 +274,8 @@ class CbUserOnlineStatusHelper
         $query = 'SELECT COUNT(*)'
             . "\n FROM " . $_CB_database->NameQuote('#__session')
             . "\n WHERE " . $_CB_database->NameQuote('client_id') . $clientIdClause
-            . "\n AND " . $_CB_database->NameQuote('guest') . " = 1";
+            . "\n AND " . $_CB_database->NameQuote('guest') . " = 1"
+            . "\n AND (UNIX_TIMESTAMP() - " . $_CB_database->NameQuote('time') . " <= {$timeout})";
         $_CB_database->setQuery($query);
         $guestUsers = (int) $_CB_database->loadResult();
 

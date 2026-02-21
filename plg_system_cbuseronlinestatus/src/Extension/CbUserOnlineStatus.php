@@ -90,6 +90,13 @@ final class CbUserOnlineStatus extends CMSPlugin implements SubscriberInterface
      */
     public function overrideAutoloader(string $class): void
     {
+        // Override files guard with defined('CBLIB') or die(). Bail out
+        // early if CB has not bootstrapped yet so that class_exists()
+        // probes from other extensions do not terminate the request.
+        if (!defined('CBLIB')) {
+            return;
+        }
+
         $map = [
             'CB\\Plugin\\Core\\Field\\StatusField' => __DIR__ . '/../Field/StatusField.php',
             'CB\\Plugin\\PMS\\Table\\MessageTable' => __DIR__ . '/../Table/MessageTable.php',

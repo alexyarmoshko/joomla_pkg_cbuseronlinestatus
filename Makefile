@@ -12,8 +12,8 @@ VERSION      := $(shell grep -oP '(?<=<version>)[^<]+' $(PKG_NAME).xml)
 PLG_DIR      := $(PLG_NAME)
 MOD_DIR      := $(MOD_NAME)
 
-PLG_ZIP      := $(PLG_NAME)-$(VERSION).zip
-MOD_ZIP      := $(MOD_NAME)-$(VERSION).zip
+PLG_ZIP      := $(PLG_NAME).zip
+MOD_ZIP      := $(MOD_NAME).zip
 PKG_ZIP      := $(PKG_NAME)-$(VERSION).zip
 
 INST_DIR     := installation
