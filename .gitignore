@@ -6,6 +6,7 @@ installation/
 .claude/
 .codex/
 .agent/
+AGENTS.*.md
 AGENTS.md
 CLAUDE.md
 GEMINI.md
