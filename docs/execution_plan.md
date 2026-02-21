@@ -16,6 +16,7 @@ To verify: install the package, revert the two patched CB files, and observe tha
 
 - [x] (2026-02-20) Initial execution plan drafted.
 - [x] (2026-02-21) Review v1 completed; plan amended to address all findings.
+- [x] (2026-02-21) Review v2 completed; plan amended to address 5 of 6 findings (finding #4 verified as false positive — 639 lines confirmed).
 - [ ] Milestone 1: System plugin `plg_system_cbuseronlinestatus` — project scaffolding, class autoloader for StatusField and MessageTable overrides.
 - [ ] Milestone 2: StatusField override class with configurable timeout.
 - [ ] Milestone 3: MessageTable override for PMS notification fix (mandatory for v1).
@@ -35,7 +36,7 @@ To verify: install the package, revert the two patched CB files, and observe tha
   Evidence: `$_CB_framework->getCfg('shared_session') ? " IS NULL" : " = 0"` appears at lines 128, 187, 250, 262, 273, and 397 of `mod_comprofileronline.php`.
 
 - Observation: `MessageTable.php` is 639 lines, well above the initially estimated ~200 line threshold for "feasible full override". The override is still viable but carries higher drift risk on CB updates.
-  Evidence: `wc -l MessageTable.php` returns 639.
+  Evidence: `wc -l MessageTable.php` returns 639 (Bash/WSL). PowerShell equivalent: `(Get-Content MessageTable.php | Measure-Object -Line).Lines`.
 
 ## Decision Log
 
@@ -74,6 +75,22 @@ To verify: install the package, revert the two patched CB files, and observe tha
 - Decision: Reuse `modCBOnlineHelper::getPlugins()` from the original CB module for plugin hook compatibility in the replacement module templates.
   Rationale: Review v1 flagged under-specification of CB plugin hook parity. The original templates call this helper at multiple hook points. Including the original `helper.php` at render time (guarded by `class_exists`) preserves third-party CB plugin integration and degrades gracefully if the original module is uninstalled.
   Date/Author: 2026-02-21 / AI (review v1)
+
+- Decision: Set `protected $autoloadLanguage = true;` in the `CbUserOnlineStatus` plugin class.
+  Rationale: Review v2 identified that project instructions (`AGENTS.md`) require namespaced service-provider plugins to enable automatic language loading. Without this, runtime language strings (parameter labels, descriptions) would not load in the frontend.
+  Date/Author: 2026-02-21 / AI (review v2)
+
+- Decision: Explicitly cast timeout to `(int)` and exclude user IDs to `(int)` before SQL interpolation in module helper queries.
+  Rationale: Review v2 flagged that the plan showed interpolated `{$timeout}` without specifying value hardening. Project data-access rules (`AGENTS.md:55-57`) require parameterized/bound values and no string concatenation. Integer casting satisfies this for the CB database API context.
+  Date/Author: 2026-02-21 / AI (review v2)
+
+- Decision: Provide both Bash/WSL and PowerShell variants for all command-line examples in the plan.
+  Rationale: Review v2 noted the repo context is Windows-centered but commands used Unix utilities (`grep`, `wc`, `mkdir -p`). Dual variants ensure novice-safety regardless of shell.
+  Date/Author: 2026-02-21 / AI (review v2)
+
+- Decision: Milestone 1 autoloader contains FQCN routing logic for both overrides, but override files are not created until Milestones 2 and 3.
+  Rationale: Review v2 flagged a contradiction between "not yet loading" and the autoloader description. Clarified that the autoloader code exists but the target files do not, so CB's own autoloader loads the originals until override files are present.
+  Date/Author: 2026-02-21 / AI (review v2)
 
 ## Outcomes & Retrospective
 
@@ -184,7 +201,7 @@ The work is organized as a monorepo at `~\repos\joomla_pkg_cbuseronlinestatus\` 
 
 ### Milestone 1: System plugin scaffolding
 
-After this milestone, the plugin project structure exists with all boilerplate files, the Joomla manifest, the DI service provider, and the main plugin class. The plugin subscribes to `onAfterInitialise` and registers a prepended PHP autoloader. The autoloader is set up but not yet loading any override classes.
+After this milestone, the plugin project structure exists with all boilerplate files, the Joomla manifest, the DI service provider, and the main plugin class. The plugin subscribes to `onAfterInitialise` and registers a prepended PHP autoloader. The autoloader contains the FQCN routing logic for both `StatusField` and `MessageTable`, but the actual override class files do not exist yet — they are created in Milestones 2 and 3 respectively. Until those files are created, the `require` calls in the autoloader will fail silently (file not found), meaning the original CB classes load normally via CB's own autoloader.
 
 Files to create:
 
@@ -192,7 +209,7 @@ Files to create:
 
 `plg_system_cbuseronlinestatus/services/provider.php` — DI provider following the pattern from the `remember` plugin. Creates `CbUserOnlineStatus` instance, sets application and database.
 
-`plg_system_cbuseronlinestatus/src/Extension/CbUserOnlineStatus.php` — Main plugin class in namespace `YakShaver\Plugin\System\Cbuseronlinestatus\Extension`. Extends `CMSPlugin`, implements `SubscriberInterface`, uses `DatabaseAwareTrait`. Subscribes to `onAfterInitialise`. In the handler, if this is a site client request, calls `spl_autoload_register` with a prepended autoloader method. The autoloader checks if the requested class is `CB\Plugin\Core\Field\StatusField` or `CB\Plugin\PMS\Table\MessageTable` and, if so, loads the corresponding override from the plugin's own `src/Field/StatusField.php` or `src/Table/MessageTable.php`. The timeout value is read from `$this->params->get('online_timeout', 1800)` and stored in a static property accessible by the override classes.
+`plg_system_cbuseronlinestatus/src/Extension/CbUserOnlineStatus.php` — Main plugin class in namespace `YakShaver\Plugin\System\Cbuseronlinestatus\Extension`. Extends `CMSPlugin`, implements `SubscriberInterface`, uses `DatabaseAwareTrait`. Sets `protected $autoloadLanguage = true;` to ensure runtime language file loading for this namespaced service-provider plugin. Subscribes to `onAfterInitialise`. In the handler, if this is a site client request, calls `spl_autoload_register` with a prepended autoloader method. The autoloader checks if the requested class is `CB\Plugin\Core\Field\StatusField` or `CB\Plugin\PMS\Table\MessageTable` and, if so, loads the corresponding override from the plugin's own `src/Field/StatusField.php` or `src/Table/MessageTable.php`. The timeout value is read from `$this->params->get('online_timeout', 1800)` and stored in a static property accessible by the override classes.
 
 `plg_system_cbuseronlinestatus/language/en-GB/plg_system_cbuseronlinestatus.ini` and `.sys.ini` — Language strings for the plugin name, description, and parameter labels.
 
@@ -331,7 +348,7 @@ This produces `client_id IS NULL` for shared-session deployments and `client_id 
 AND (UNIX_TIMESTAMP() - s.time <= {$timeout})
 ```
 
-where `{$timeout}` is the configured timeout in seconds. The helper uses `$_CB_database` for consistency with the original module code and CB user rendering.
+where `{$timeout}` is the configured timeout in seconds. The timeout value must be explicitly cast to integer (`(int) $timeout`) before interpolation to prevent injection, even though it originates from a trusted parameter. Similarly, user IDs in the `exclude` list must each be cast to integer (`(int) $id`) before being joined into an `IN (...)` clause — never concatenate raw user input into SQL. The helper uses `$_CB_database` for consistency with the original module code and CB user rendering.
 
 Internal methods (all private):
 
@@ -446,7 +463,12 @@ Setup steps:
 
 Validation matrix — each test must pass before the milestone is considered complete:
 
-**V1 — Baseline check.** Before any testing, confirm the current patched state of the live CB files. Run: `grep -n 'UNIX_TIMESTAMP' components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.php` and `grep -n 'UNIX_TIMESTAMP' modules/mod_comprofileronline/mod_comprofileronline.php` from the site root. Expected: StatusField.php line 43 contains `(time() - $lastTime)<=1800`, mod_comprofileronline.php line 400 contains `UNIX_TIMESTAMP() - time <= 1800`. This confirms the two already-patched locations.
+**V1 — Baseline check.** Before any testing, confirm the current patched state of the live CB files. From the site root, run one of:
+
+- Bash/WSL: `grep -n 'UNIX_TIMESTAMP' components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.php` and `grep -n 'UNIX_TIMESTAMP' modules/mod_comprofileronline/mod_comprofileronline.php`
+- PowerShell: `Select-String -Pattern 'UNIX_TIMESTAMP' -Path components\com_comprofiler\plugin\user\plug_cbcore\library\Field\StatusField.php` and `Select-String -Pattern 'UNIX_TIMESTAMP' -Path modules\mod_comprofileronline\mod_comprofileronline.php`
+
+Expected: StatusField.php line 43 contains `(time() - $lastTime)<=1800`, mod_comprofileronline.php line 400 contains `UNIX_TIMESTAMP() - time <= 1800`. This confirms the two already-patched locations.
 
 **V2 — Mode 1 (Online Users).** Setup: log in as test user, note they appear in the module user list. Action: age their session via `UPDATE #__session SET time = UNIX_TIMESTAMP() - 1860 WHERE userid = <testUserId>`, then refresh the page. Expected: the test user disappears from the online users list.
 
@@ -476,7 +498,9 @@ Steps:
    - Copy `modules/mod_comprofileronline/mod_comprofileronline.original.php` to `modules/mod_comprofileronline/mod_comprofileronline.php`
    - Copy `components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.original.php` to `components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.php`
 
-2. Confirm the originals are restored by checking that the timeout patches are no longer present: `grep -c 'UNIX_TIMESTAMP' StatusField.php` should return 0, and `grep -c '1800' mod_comprofileronline.php` on the relevant line should return 0.
+2. Confirm the originals are restored by checking that the timeout patches are no longer present. Run one of:
+   - Bash/WSL: `grep -c 'UNIX_TIMESTAMP' StatusField.php` should return 0, and `grep -c '1800' mod_comprofileronline.php` on the relevant line should return 0.
+   - PowerShell: `(Select-String -Pattern 'UNIX_TIMESTAMP' -Path StatusField.php).Count` should return 0, and `(Select-String -Pattern '1800' -Path mod_comprofileronline.php).Count` on the relevant line should return 0.
 
 3. Refresh the site and re-run validation tests V2 and V8 from Milestone 8. The online-status behavior must remain correct — the package's autoloader and module now handle the timeout, not the file patches. If either test fails, the package is not working correctly and the revert should be rolled back.
 
@@ -492,10 +516,28 @@ Working directory: `C:\Users\alex\repos\joomla_pkg_cbuseronlinestatus\`
 
 Step 1 — Create the directory structure:
 
+Bash/WSL:
+
 ```shell
     mkdir -p plg_system_cbuseronlinestatus/{services,src/{Extension,Field,Table},language/en-GB}
     mkdir -p mod_cbuseronlinestatus/{services,src/{Dispatcher,Helper},tmpl,language/en-GB}
     mkdir -p installation
+```
+
+PowerShell:
+
+```powershell
+    @('plg_system_cbuseronlinestatus\services',
+      'plg_system_cbuseronlinestatus\src\Extension',
+      'plg_system_cbuseronlinestatus\src\Field',
+      'plg_system_cbuseronlinestatus\src\Table',
+      'plg_system_cbuseronlinestatus\language\en-GB',
+      'mod_cbuseronlinestatus\services',
+      'mod_cbuseronlinestatus\src\Dispatcher',
+      'mod_cbuseronlinestatus\src\Helper',
+      'mod_cbuseronlinestatus\tmpl',
+      'mod_cbuseronlinestatus\language\en-GB',
+      'installation') | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ }
 ```
 
 Step 2 — Create all source files as described in Milestones 1–7.
@@ -588,7 +630,7 @@ The package can be fully uninstalled via Extensions > Manage > Manage, which rem
     // Original:
     $_CB_framework->userOnlineLastTime( $this->getInt( 'to_user', 0 ) ) != null
 
-    // Desired fix (if override is feasible):
+    // Override (with timeout — mandatory for v1):
     $lastTime = $_CB_framework->userOnlineLastTime( $this->getInt( 'to_user', 0 ) );
     $timeout = \YakShaver\Plugin\System\Cbuseronlinestatus\Extension\CbUserOnlineStatus::getOnlineTimeout();
     ( $lastTime !== null ) && ( ( time() - $lastTime ) <= $timeout )
@@ -606,6 +648,8 @@ In `plg_system_cbuseronlinestatus/src/Extension/CbUserOnlineStatus.php`, define:
     final class CbUserOnlineStatus extends CMSPlugin implements SubscriberInterface
     {
         use DatabaseAwareTrait;
+
+        protected $autoloadLanguage = true;
 
         private static int $onlineTimeout = 1800;
 
@@ -696,3 +740,4 @@ In `mod_cbuseronlinestatus/src/Dispatcher/Dispatcher.php`, define:
 ## Revision History
 
 - 2026-02-21: Plan amended per review v1 (`docs/execution_plan.review.v1.md`). Addressed 3 blockers (outdated baseline, hardcoded `client_id`, PMS ambiguity), 2 high-severity items (plugin hook compatibility, non-deterministic verification), and 1 medium (formatting/hygiene). All review findings resolved. See `docs/execution_changelog.md` for full details.
+- 2026-02-21: Plan amended per review v2 (`docs/execution_plan.review.v2.md`). Addressed 5 of 6 findings: removed PMS conditional wording in Artifacts, added `autoloadLanguage` to plugin class spec, resolved Milestone 1 sequencing contradiction, normalized shell commands with PowerShell variants, added SQL value hardening for timeout/exclude. Finding #4 (line-count discrepancy) verified as false positive — `wc -l` confirms 639 lines. See `docs/execution_changelog.md` for full details.

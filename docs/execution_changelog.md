@@ -1,6 +1,20 @@
 # Execution Changelog — pkg_cbuseronlinestatus
 
-## 2026-02-21
+## 2026-02-21 (review v2)
+
+- Completed review v2 (`docs/execution_plan.review.v2.md`) against live code, project rules, and review v1 baseline.
+- Review v2 found no architecture blockers; 6 consistency/safety/standards findings.
+- Amended execution plan to address 5 of 6 findings:
+  - (High) Removed conditional wording `// Desired fix (if override is feasible):` in Artifacts section for PMS override. Now reads `// Override (with timeout — mandatory for v1):`, consistent with Milestone 3 mandatory decision.
+  - (High) Added `protected $autoloadLanguage = true;` to `CbUserOnlineStatus` class spec (Interfaces section) and Milestone 1 description. Required by `AGENTS.md` for namespaced service-provider plugins to load runtime language files.
+  - (Medium) Resolved Milestone 1 sequencing contradiction: clarified that the autoloader contains FQCN routing logic but override files are not yet created (created in Milestones 2 and 3); until then, CB's own autoloader loads the originals.
+  - (Medium) Normalized shell command examples: added PowerShell variants alongside Bash/WSL for `wc -l` evidence, V1 baseline check (`grep` → `Select-String`), Milestone 9 revert check, and Concrete Steps directory creation (`mkdir -p` → `New-Item`).
+  - (Medium) Added explicit SQL value hardening guidance: timeout must be `(int)` cast before interpolation; exclude user IDs must each be `(int)` cast before `IN (...)` clause construction.
+- Finding #4 (MessageTable line-count discrepancy) verified as false positive: `wc -l` confirms 639 lines, matching the plan. Review claimed 513 lines, which was incorrect.
+- Added 4 new decisions to Decision Log (autoloadLanguage, SQL hardening, shell normalization, Milestone 1 sequencing).
+- Updated Progress and Revision History sections.
+
+## 2026-02-21 (review v1)
 
 - Completed review v1 (`docs/execution_plan.review.v1.md`) against live production code.
 - Amended execution plan to address all 6 review findings:
