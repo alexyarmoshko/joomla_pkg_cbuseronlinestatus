@@ -1,5 +1,13 @@
 # Execution Changelog — pkg_cbuseronlinestatus
 
+## 2026-02-21 (review v4)
+
+- Completed review v4 (`docs/execution_plan.review.v4.md`). No blocking findings; 2 low-severity wording/ordering issues.
+- Amended execution plan to address both findings:
+  - (Low) Fixed autoloader description in Milestone 2: replaced "returns `true`, preventing CB's own autoloader from loading the original" with "loads the override class first; once the class exists, CB's own autoloader is not used for that class". The autoloader method is `void`, not boolean — the previous wording was inconsistent with the Milestone 1/Interfaces specification.
+  - (Low) Reordered line-count evidence in Surprises & Discoveries to list PowerShell first and Bash/WSL second, matching the Windows-primary workspace. Content unchanged; only presentation order adjusted to reduce review churn.
+- Updated Progress and Revision History sections.
+
 ## 2026-02-21 (review v3)
 
 - Completed review v3 (`docs/execution_plan.review.v3.md`) against live code, project rules, and prior reviews v1/v2.

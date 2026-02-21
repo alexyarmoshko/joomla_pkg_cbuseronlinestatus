@@ -18,6 +18,7 @@ To verify: install the package, revert the two patched CB files, and observe tha
 - [x] (2026-02-21) Review v1 completed; plan amended to address all findings.
 - [x] (2026-02-21) Review v2 completed; plan amended to address 5 of 6 findings (finding #4 verified as false positive — ~640 lines confirmed).
 - [x] (2026-02-21) Review v3 completed; plan amended to address all 3 findings (autoloader guard, ASCII tree, line-count normalization).
+- [x] (2026-02-21) Review v4 completed; plan amended to address both low-severity findings (autoloader wording, line-count evidence order).
 - [ ] Milestone 1: System plugin `plg_system_cbuseronlinestatus` — project scaffolding, class autoloader for StatusField and MessageTable overrides.
 - [ ] Milestone 2: StatusField override class with configurable timeout.
 - [ ] Milestone 3: MessageTable override for PMS notification fix (mandatory for v1).
@@ -37,7 +38,7 @@ To verify: install the package, revert the two patched CB files, and observe tha
   Evidence: `$_CB_framework->getCfg('shared_session') ? " IS NULL" : " = 0"` appears at lines 128, 187, 250, 262, 273, and 397 of `mod_comprofileronline.php`.
 
 - Observation: `MessageTable.php` is ~640 lines, well above the initially estimated ~200 line threshold for "feasible full override". The override is still viable but carries higher drift risk on CB updates.
-  Evidence: `wc -l MessageTable.php` returns 639 (Bash/WSL); PowerShell `(Get-Content MessageTable.php | Measure-Object -Line).Lines` may report 640 depending on trailing-newline handling. Both confirm ~640 lines.
+  Evidence: PowerShell `(Get-Content MessageTable.php | Measure-Object -Line).Lines` reports 640; Bash/WSL `wc -l MessageTable.php` returns 639 (difference is trailing-newline handling). Both confirm ~640 lines.
 
 ## Decision Log
 
@@ -247,7 +248,7 @@ is replaced with:
 
 The `getOnlineTimeout()` method is a public static method on the main plugin class that returns the configured timeout value (with a fallback of 1800 seconds if the plugin is not yet loaded). This method must be added to `CbUserOnlineStatus.php`.
 
-The autoloader logic in the plugin class works as follows: when PHP attempts to load `CB\Plugin\Core\Field\StatusField`, the prepended autoloader checks if this exact FQCN is requested. If yes, it requires the override file from the plugin directory and returns `true`, preventing CB's own autoloader from loading the original. Because CB uses PSR-4 autoloading through `CBLib`, and our autoloader is prepended, our version loads first.
+The autoloader logic in the plugin class works as follows: when PHP attempts to load `CB\Plugin\Core\Field\StatusField`, the prepended autoloader checks if this exact FQCN is requested. If yes, it loads the override class first; once the class exists, CB's own autoloader is not used for that class. Because CB uses PSR-4 autoloading through `CBLib`, and our autoloader is prepended, our version loads first.
 
 Important: the override file must declare the exact same namespace (`CB\Plugin\Core\Field`) and class name (`StatusField`) and must include all the same `use` statements and methods as the original. The class must NOT extend the original (since we are replacing it entirely). Copy all three methods verbatim (`getField`, `prepareFieldDataSave`, `bindSearchCriteria`) and modify only the `$isOnline` assignment in `getField`.
 
@@ -755,3 +756,4 @@ In `mod_cbuseronlinestatus/src/Dispatcher/Dispatcher.php`, define:
 - 2026-02-21: Plan amended per review v1 (`docs/execution_plan.review.v1.md`). Addressed 3 blockers (outdated baseline, hardcoded `client_id`, PMS ambiguity), 2 high-severity items (plugin hook compatibility, non-deterministic verification), and 1 medium (formatting/hygiene). All review findings resolved. See `docs/execution_changelog.md` for full details.
 - 2026-02-21: Plan amended per review v2 (`docs/execution_plan.review.v2.md`). Addressed 5 of 6 findings: removed PMS conditional wording in Artifacts, added `autoloadLanguage` to plugin class spec, resolved Milestone 1 sequencing contradiction, normalized shell commands with PowerShell variants, added SQL value hardening for timeout/exclude. Finding #4 (line-count discrepancy) verified as false positive — `wc -l` confirms ~640 lines. See `docs/execution_changelog.md` for full details.
 - 2026-02-21: Plan amended per review v3 (`docs/execution_plan.review.v3.md`). Addressed all 3 findings: added `is_readable` guard to autoloader (prevents fatal on missing override files), replaced UTF-8 box-drawing tree with plain ASCII, normalized MessageTable line count to ~640. See `docs/execution_changelog.md` for full details.
+- 2026-02-21: Plan amended per review v4 (`docs/execution_plan.review.v4.md`). Addressed both low-severity findings: fixed autoloader "returns true" wording to match void/guard-based design, reordered line-count evidence to list PowerShell first. See `docs/execution_changelog.md` for full details.
