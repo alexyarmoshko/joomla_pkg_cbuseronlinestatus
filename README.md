@@ -64,7 +64,7 @@ make dist
 
 Output ZIPs are written to `installation/`.
 
-Release notes for the current package version are in [`RELEASE.md`](RELEASE.md).
+Release notes for the current package version are in [`RELEASE.md`](docs/RELEASE.md).
 
 ## Requirements
 
@@ -88,7 +88,3 @@ After upgrading Community Builder, review and re-test before publishing a packag
 ## License
 
 GNU General Public License version 2 or later. See [LICENSE](LICENSE).
-
-## Author
-
-**Yak Shaver** — [kayakshaver.com](https://www.kayakshaver.com) — me@kayakshaver.com
