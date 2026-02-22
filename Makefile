@@ -1,10 +1,13 @@
 # Makefile for pkg_cbuseronlinestatus
-# Builds plugin, module, and package ZIPs with update XML SHA256 patching.
+# Builds plugin, module, and package ZIPs with update XML patching.
 
 NAME         := cbuseronlinestatus
 PLG_NAME     := plg_system_$(NAME)
 MOD_NAME     := mod_$(NAME)
 PKG_NAME     := pkg_$(NAME)
+
+GITHUB_OWNER ?= alexyarmoshko
+GITHUB_REPO  ?= joomla_pkg_cbuseronlinestatus
 
 # Read version from the package manifest
 VERSION      := $(shell grep -oP '(?<=<version>)[^<]+' $(PKG_NAME).xml)
@@ -40,18 +43,37 @@ dist: clean
 	cd $(MOD_DIR) && zip -r ../$(INST_DIR)/$(MOD_ZIP) . -x ".*"
 	rm $(MOD_DIR)/LICENSE
 
-	@echo "--- Calculating SHA256 hashes ---"
-	$(eval PLG_SHA256 := $(shell sha256sum $(INST_DIR)/$(PLG_ZIP) | cut -d' ' -f1))
-	$(eval MOD_SHA256 := $(shell sha256sum $(INST_DIR)/$(MOD_ZIP) | cut -d' ' -f1))
+	@echo "--- Updating plugin update XML ---"
+	@SHA256="$$( (command -v sha256sum >/dev/null && sha256sum "$(INST_DIR)/$(PLG_ZIP)" || shasum -a 256 "$(INST_DIR)/$(PLG_ZIP)") | awk '{print $$1}' )"; \
+	echo "Plugin SHA256:  $$SHA256"; \
+	awk -v version="$(VERSION)" \
+	    -v url="https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/v$(VERSION)/$(PLG_ZIP)" \
+	    -v sha="$$SHA256" '{ \
+		if ($$0 ~ /<version>[^<]+<\/version>/) { \
+			sub(/<version>[^<]+<\/version>/, "<version>" version "</version>"); \
+		} else if ($$0 ~ /<downloadurl[^>]*>[^<]+<\/downloadurl>/) { \
+			sub(/<downloadurl[^>]*>[^<]+<\/downloadurl>/, "<downloadurl type=\"full\" format=\"zip\">" url "</downloadurl>"); \
+		} else if ($$0 ~ /<sha256>[^<]+<\/sha256>/) { \
+			sub(/<sha256>[^<]+<\/sha256>/, "<sha256>" sha "</sha256>"); \
+		} \
+		print; \
+	}' "$(PLG_NAME).update.xml" > "$(PLG_NAME).update.xml.tmp" && mv "$(PLG_NAME).update.xml.tmp" "$(PLG_NAME).update.xml"
 
-	@echo "Plugin SHA256:  $(PLG_SHA256)"
-	@echo "Module SHA256:  $(MOD_SHA256)"
-
-	@echo "--- Updating plugin update XML with SHA256 ---"
-	sed -i 's|<sha256>[^<]*</sha256>|<sha256>$(PLG_SHA256)</sha256>|' $(PLG_NAME).update.xml
-
-	@echo "--- Updating module update XML with SHA256 ---"
-	sed -i 's|<sha256>[^<]*</sha256>|<sha256>$(MOD_SHA256)</sha256>|' $(MOD_NAME).update.xml
+	@echo "--- Updating module update XML ---"
+	@SHA256="$$( (command -v sha256sum >/dev/null && sha256sum "$(INST_DIR)/$(MOD_ZIP)" || shasum -a 256 "$(INST_DIR)/$(MOD_ZIP)") | awk '{print $$1}' )"; \
+	echo "Module SHA256:  $$SHA256"; \
+	awk -v version="$(VERSION)" \
+	    -v url="https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/v$(VERSION)/$(MOD_ZIP)" \
+	    -v sha="$$SHA256" '{ \
+		if ($$0 ~ /<version>[^<]+<\/version>/) { \
+			sub(/<version>[^<]+<\/version>/, "<version>" version "</version>"); \
+		} else if ($$0 ~ /<downloadurl[^>]*>[^<]+<\/downloadurl>/) { \
+			sub(/<downloadurl[^>]*>[^<]+<\/downloadurl>/, "<downloadurl type=\"full\" format=\"zip\">" url "</downloadurl>"); \
+		} else if ($$0 ~ /<sha256>[^<]+<\/sha256>/) { \
+			sub(/<sha256>[^<]+<\/sha256>/, "<sha256>" sha "</sha256>"); \
+		} \
+		print; \
+	}' "$(MOD_NAME).update.xml" > "$(MOD_NAME).update.xml.tmp" && mv "$(MOD_NAME).update.xml.tmp" "$(MOD_NAME).update.xml"
 
 	@echo "--- Building package ZIP ---"
 	cp $(PKG_NAME).xml $(PKG_NAME).xml.bak
@@ -64,12 +86,21 @@ dist: clean
 		LICENSE
 	mv $(PKG_NAME).xml.bak $(PKG_NAME).xml
 
-	@echo "--- Calculating package SHA256 ---"
-	$(eval PKG_SHA256 := $(shell sha256sum $(INST_DIR)/$(PKG_ZIP) | cut -d' ' -f1))
-	@echo "Package SHA256: $(PKG_SHA256)"
-
-	@echo "--- Updating package update XML with SHA256 ---"
-	sed -i 's|<sha256>[^<]*</sha256>|<sha256>$(PKG_SHA256)</sha256>|' $(PKG_NAME).update.xml
+	@echo "--- Updating package update XML ---"
+	@SHA256="$$( (command -v sha256sum >/dev/null && sha256sum "$(INST_DIR)/$(PKG_ZIP)" || shasum -a 256 "$(INST_DIR)/$(PKG_ZIP)") | awk '{print $$1}' )"; \
+	echo "Package SHA256: $$SHA256"; \
+	awk -v version="$(VERSION)" \
+	    -v url="https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/v$(VERSION)/$(PKG_ZIP)" \
+	    -v sha="$$SHA256" '{ \
+		if ($$0 ~ /<version>[^<]+<\/version>/) { \
+			sub(/<version>[^<]+<\/version>/, "<version>" version "</version>"); \
+		} else if ($$0 ~ /<downloadurl[^>]*>[^<]+<\/downloadurl>/) { \
+			sub(/<downloadurl[^>]*>[^<]+<\/downloadurl>/, "<downloadurl type=\"full\" format=\"zip\">" url "</downloadurl>"); \
+		} else if ($$0 ~ /<sha256>[^<]+<\/sha256>/) { \
+			sub(/<sha256>[^<]+<\/sha256>/, "<sha256>" sha "</sha256>"); \
+		} \
+		print; \
+	}' "$(PKG_NAME).update.xml" > "$(PKG_NAME).update.xml.tmp" && mv "$(PKG_NAME).update.xml.tmp" "$(PKG_NAME).update.xml"
 
 	@echo ""
 	@echo "=== Build complete ==="
