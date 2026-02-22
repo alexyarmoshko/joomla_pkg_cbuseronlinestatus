@@ -10,7 +10,7 @@
         <downloads>
             <downloadurl type="full" format="zip">https://github.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/releases/download/v1.0.0/pkg_cbuseronlinestatus-1.0.0.zip</downloadurl>
         </downloads>
-        <sha256>b1254a6e1db6267e45f98a36f945e81a976f17bcf12465f30e06edc8837eebc7</sha256>
+        <sha256>1ddc587e881bc12bba2a6db223ef1a929a21885a196cee213891f99ab823fd92</sha256>
         <targetplatform name="joomla" version="(5\.[0-9])" />
         <php_minimum>8.1.0</php_minimum>
     </update>
