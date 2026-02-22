@@ -21,15 +21,16 @@ To verify: install the package, revert the two patched CB files, and observe tha
 - [x] (2026-02-21) Review v4 completed; plan amended to address both low-severity findings (autoloader wording, line-count evidence order).
 - [x] (2026-02-21) Review v5 completed; plan amended to address all 3 findings (V1 baseline pattern, Milestone 9 revert checks).
 - [x] (2026-02-21) Review v6 completed; plan amended to address 1 low-severity finding (Milestone 9 revert command paths).
-- [ ] Milestone 1: System plugin `plg_system_cbuseronlinestatus` — project scaffolding, class autoloader for StatusField and MessageTable overrides.
-- [ ] Milestone 2: StatusField override class with configurable timeout.
-- [ ] Milestone 3: MessageTable override for PMS notification fix (mandatory for v1).
-- [ ] Milestone 4: Custom module `mod_cbuseronlinestatus` — scaffolding and manifest.
-- [ ] Milestone 5: Module helper with session queries (modes 1, 6, 7, 9) and `shared_session` branching.
-- [ ] Milestone 6: Module dispatcher and layouts with CB plugin hook compatibility.
-- [ ] Milestone 7: Package manifest `pkg_cbuseronlinestatus`, Makefiles, README.
-- [ ] Milestone 8: Integration testing on DDEV site — deterministic validation matrix (V1–V9).
-- [ ] Milestone 9: Revert patched CB files, final validation.
+- [x] (2026-02-21) Milestone 1 completed: System plugin `plg_system_cbuseronlinestatus` - project scaffolding, class autoloader for StatusField and MessageTable overrides.
+- [x] (2026-02-21) Milestone 2 completed: StatusField override class with configurable timeout.
+- [x] (2026-02-21) Milestone 3 completed: MessageTable override for PMS notification fix (mandatory for v1).
+- [x] (2026-02-21) Milestone 4 completed: Custom module `mod_cbuseronlinestatus` - scaffolding and manifest.
+- [x] (2026-02-21) Milestone 5 completed: Module helper with session queries (modes 1, 6, 7, 9) and `shared_session` branching.
+- [x] (2026-02-21) Milestone 6 completed: Module dispatcher and layouts with CB plugin hook compatibility.
+- [x] (2026-02-21) Milestone 7 completed: Package manifest `pkg_cbuseronlinestatus`, Makefiles, README.
+- [x] (2026-02-21) Milestone 8 completed for v1.0.0 release validation (deterministic validation matrix V1-V9).
+- [x] (2026-02-21) Milestone 9 completed for v1.0.0 release rollout (revert patched CB files, final validation).
+- [x] (2026-02-22) Post-release repo review completed; documentation updated to reflect released implementation state and current README behavior/details.
 
 ## Surprises & Discoveries
 
@@ -106,7 +107,12 @@ To verify: install the package, revert the two patched CB files, and observe tha
 
 ## Outcomes & Retrospective
 
-(To be populated at completion.)
+- Outcome: v1.0.0 package was implemented and released with three build artifacts: system plugin, site module, and package ZIP (`pkg_cbuseronlinestatus-1.0.0.zip`).
+- Outcome: The released implementation covers all targeted stale-online locations in scope: `StatusField`, PMS `MessageTable`, and CB online module modes 1/6/7/9 via `mod_cbuseronlinestatus`.
+- Outcome: Build tooling generates versioned child ZIP filenames and patches update XML metadata (download URL + SHA256) during `make dist`.
+- Outcome: The repo now includes release notes (`docs/RELEASE.md`, with root `RELEASE.md` pointer) and a README aligned with the released module/plugin parameters and build prerequisites.
+- Residual risk: Full `MessageTable` override remains a CB-upgrade drift surface; compare against upstream CB on each CB update before releasing package updates.
+- Retrospective: The autoloader-based plugin override plus standalone Joomla 5 module avoided core/CB file patch maintenance while keeping rollback straightforward (disable plugin / unpublish module).
 
 ## Context and Orientation
 
@@ -761,3 +767,4 @@ In `mod_cbuseronlinestatus/src/Dispatcher/Dispatcher.php`, define:
 - 2026-02-21: Plan amended per review v4 (`docs/execution_plan.review.v4.md`). Addressed both low-severity findings: fixed autoloader "returns true" wording to match void/guard-based design, reordered line-count evidence to list PowerShell first. See `docs/execution_changelog.md` for full details.
 - 2026-02-21: Plan amended per review v5 (`docs/execution_plan.review.v5.md`). Addressed all 3 findings: fixed V1 baseline to search `time() - $lastTime` in StatusField (not `UNIX_TIMESTAMP`), fixed Milestone 9 revert to use same diagnostic pattern, tightened module revert check to exact `UNIX_TIMESTAMP() - time <= 1800` expression. See `docs/execution_changelog.md` for full details.
 - 2026-02-21: Plan amended per review v6 (`docs/execution_plan.review.v6.md`). Addressed 1 low-severity finding: added full relative paths to Milestone 9 revert verification commands (previously bare filenames, not runnable from site root). See `docs/execution_changelog.md` for full details.
+- 2026-02-22: Post-release repo review updated the plan status to reflect the shipped v1.0.0 implementation (Milestones 1-9 completed) and populated Outcomes & Retrospective. See `docs/execution_changelog.md` for details.

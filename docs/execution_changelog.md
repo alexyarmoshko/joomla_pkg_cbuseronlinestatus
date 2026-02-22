@@ -1,5 +1,17 @@
 # Execution Changelog — pkg_cbuseronlinestatus
 
+## 2026-02-22 (post-release repo review)
+
+- Reviewed the repository against the released implementation and current docs.
+- Updated `README.md` to reflect actual module parameters (including pre/post text, user text, thousands separator), clarify CB hook compatibility wording, and document real build prerequisites (`awk`, POSIX shell/Git Bash on Windows, `sha256sum` or `shasum`).
+- Updated `docs/execution_plan.md` to reflect the released state:
+  - Marked Milestones 1-9 as completed for v1.0.0.
+  - Added a post-release documentation-sync progress entry.
+  - Populated `Outcomes & Retrospective`.
+- Added root `RELEASE.md` pointer to `docs/RELEASE.md` so the repo matches the documented/expected release-notes location.
+- Fixed duplicate CB hook invocation in `mod_cbuseronlinestatus/tmpl/default.php` by caching hook output once before the list-render condition (prevents double execution/duplicate side effects when `cb_plugins` is enabled).
+- Added `README.md` sections for known limitations and post-Community-Builder-upgrade verification checks.
+
 ## 2026-02-21 (review v6)
 
 - Completed review v6 (`docs/execution_plan.review.v6.md`). No blockers; 1 low-severity reproducibility issue.
