@@ -28,7 +28,7 @@ Initial release of the Yak Shaver CB User Online Status package.
 - **(Critical)** Package build now patches the manifest at build time with versioned child ZIP filenames, then restores the source file; all installation artifacts are consistently versioned.
 - **(High)** Prepended autoloader now checks `defined('CBLIB')` before loading override files, preventing hard-stops when other extensions probe CB class names before CB has bootstrapped.
 - **(Medium)** Guest count in statistics mode (mode 6) now applies the same timeout filter as the user online count, eliminating inflated/stale guest totals.
-- **(Medium)** Restored `__SHA256_*__` placeholder tokens in update XML files so `make dist` correctly populates SHA256 hashes.
+- **(Medium)** SHA256 injection in `make dist` now replaces the value inside `<sha256>` tags directly, working with empty source tags instead of requiring placeholder tokens.
 
 ## Upgrade Notes
 

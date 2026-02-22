@@ -48,10 +48,10 @@ dist: clean
 	@echo "Module SHA256:  $(MOD_SHA256)"
 
 	@echo "--- Updating plugin update XML with SHA256 ---"
-	sed -i 's/__SHA256_PLG__/$(PLG_SHA256)/g' $(PLG_NAME).update.xml
+	sed -i 's|<sha256>[^<]*</sha256>|<sha256>$(PLG_SHA256)</sha256>|' $(PLG_NAME).update.xml
 
 	@echo "--- Updating module update XML with SHA256 ---"
-	sed -i 's/__SHA256_MOD__/$(MOD_SHA256)/g' $(MOD_NAME).update.xml
+	sed -i 's|<sha256>[^<]*</sha256>|<sha256>$(MOD_SHA256)</sha256>|' $(MOD_NAME).update.xml
 
 	@echo "--- Building package ZIP ---"
 	cp $(PKG_NAME).xml $(PKG_NAME).xml.bak
@@ -69,7 +69,7 @@ dist: clean
 	@echo "Package SHA256: $(PKG_SHA256)"
 
 	@echo "--- Updating package update XML with SHA256 ---"
-	sed -i 's/__SHA256_PKG__/$(PKG_SHA256)/g' $(PKG_NAME).update.xml
+	sed -i 's|<sha256>[^<]*</sha256>|<sha256>$(PKG_SHA256)</sha256>|' $(PKG_NAME).update.xml
 
 	@echo ""
 	@echo "=== Build complete ==="
