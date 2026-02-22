@@ -31,6 +31,11 @@ To verify: install the package, revert the two patched CB files, and observe tha
 - [x] (2026-02-21) Milestone 8 completed for v1.0.0 release validation (deterministic validation matrix V1-V9).
 - [x] (2026-02-21) Milestone 9 completed for v1.0.0 release rollout (revert patched CB files, final validation).
 - [x] (2026-02-22) Post-release repo review completed; documentation updated to reflect released implementation state and current README behavior/details.
+- [x] (2026-02-22) Code review v6 (`docs/code_review.v6.md`) completed; findings documented for post-release hardening.
+- [x] (2026-02-22) Review v7 completed; plan amended to address all 3 findings (remove disablePlugin, admin-only warnings, disabled Kunena field).
+- [ ] Milestone 10a: Upstream file-hash verification (detect CB file changes on admin pages).
+- [ ] Milestone 10b: Decouple module from plugin namespace (use Joomla application state).
+- [ ] Milestone 10c: Kunena timeout synchronization (add `timeout_source` parameter).
 
 ## Surprises & Discoveries
 
@@ -104,6 +109,18 @@ To verify: install the package, revert the two patched CB files, and observe tha
 - Decision: Use plain ASCII tree characters (`|--`, `` `-- ``) in the directory structure diagram instead of UTF-8 box-drawing characters.
   Rationale: Review v3 confirmed that UTF-8 box-drawing chars render as mojibake on some Windows tools (Windows-1252 interpretation). Plain ASCII ensures readability across all editors and terminals.
   Date/Author: 2026-02-21 / AI (review v3)
+
+- Decision: Use SHA256 file-hash verification with an admin verification gate and override deactivation (without disabling the plugin), rather than CB version tracking or dynamic on-the-fly patching.
+  Rationale: Code review v6 (Section 5.1) identified three strategies. File hashing is the most reliable: it detects actual file-level changes regardless of CB version number, produces no false positives (unlike version tracking), and avoids the fragility and security concerns of `eval()`-based dynamic patching. The verification gate ensures the plugin never activates overrides without explicit admin sign-off. When upstream files change, the plugin deactivates overrides by setting `hashes_verified = 0` but remains enabled (`enabled = 1`) so it can continue warning the admin on every backend request. The plugin must NOT call `disablePlugin()` because if a frontend visitor triggers the hash mismatch, disabling the plugin would prevent the admin from ever seeing the warning (review v7, finding #1). All warning messages are guarded by `isClient('administrator')` to prevent leaking file paths to frontend visitors (review v7, finding #2). Hash state is persisted in `#__extensions` params using the `saveParams()` pattern from Joomla core's `plg_system_stats`. Admin verification uses a standard Joomla radio field (`hashes_verified`) and the normal plugin save flow — no AJAX, no custom buttons, no JavaScript. A read-only custom `UpstreamHashes` form field displays the computed hashes for review.
+  Date/Author: 2026-02-22 / AI (code review v6, revised per user feedback and review v7)
+
+- Decision: Use Joomla application state (`Application::set/get`) to decouple the module from the plugin's namespace, rather than custom events, plugin parameter lookup, or DI container registration.
+  Rationale: Code review v6 (Section 5.2) identified four decoupling strategies. Application state is the most efficient for sharing a single integer value. Custom events add dispatcher overhead, plugin parameter lookup requires JSON decoding, and DI container registration is excessive boilerplate. Application state is a one-liner on each side and preserves the same priority chain (plugin > module param > default).
+  Date/Author: 2026-02-22 / AI (code review v6)
+
+- Decision: Add a `timeout_source` plugin parameter to optionally read the online timeout from Kunena's `KunenaConfig::sessionTimeOut` instead of the plugin's own `online_timeout` field.
+  Rationale: Kunena forum runs on the same site and has its own session timeout (default 1800s). When both are active, divergent timeout values cause UX inconsistency (user appears online in CB but offline in Kunena or vice versa). The `timeout_source` parameter lets administrators keep both in sync without manual coordination. The Kunena class is accessed via `class_exists` guard so the plugin degrades gracefully if Kunena is not installed.
+  Date/Author: 2026-02-22 / AI (code review v6)
 
 ## Outcomes & Retrospective
 
@@ -181,7 +198,9 @@ The work is organized as a monorepo at `~\repos\joomla_pkg_cbuseronlinestatus\` 
     |   |   |-- Extension/
     |   |   |   `-- CbUserOnlineStatus.php   (main plugin class)
     |   |   |-- Field/
-    |   |   |   `-- StatusField.php          (StatusField override)
+    |   |   |   |-- StatusField.php          (StatusField override)
+    |   |   |   |-- OnlineTimeoutField.php   (custom form field, Milestone 10c)
+    |   |   |   `-- UpstreamHashesField.php  (custom form field, Milestone 10a)
     |   |   `-- Table/
     |   |       `-- MessageTable.php         (MessageTable override)
     |   |-- language/
@@ -528,6 +547,233 @@ Steps:
 
 Verification: Site loads without errors. V2 and V8 pass after revert. The CB files are now unmodified originals, safe for future CB updates.
 
+### Milestone 10: Post-release hardening — upstream drift detection, plugin decoupling, and Kunena timeout sync
+
+This milestone addresses three findings from the code review v6 (`docs/code_review.v6.md`) performed on the released v1.0.0 package. The changes improve maintainability and operational safety without altering the core timeout-override behavior. After this milestone, administrators receive a warning when CB updates change the overridden files, the module no longer depends on the plugin's internal namespace, and the plugin can optionally synchronize its timeout with Kunena's forum session timeout.
+
+#### 10a — Upstream file-hash verification with admin verification gate (addresses review Section 5.1)
+
+The tightest risk in the package is the full-body override of CB's `StatusField.php` (~80 lines) and `MessageTable.php` (~640 lines). If Joomlapolis releases a CB update that changes these files, the overrides silently mask the upstream changes — including potential security patches. This sub-milestone adds a self-enforcing integrity gate: the plugin computes and stores SHA256 hashes of the tracked CB files, requires explicit admin verification before it will activate its overrides, and automatically deactivates its overrides (without disabling the plugin) if the upstream files change. The plugin remains enabled in Joomla at all times so it can continue to display warnings to the administrator on every backend request until the hashes are re-verified.
+
+The tracked files (relative to the Joomla site root) are defined as a class constant:
+
+    private const TRACKED_FILES = [
+        'components/com_comprofiler/plugin/user/plug_cbcore/library/Field/StatusField.php',
+        'components/com_comprofiler/plugin/user/plug_pms_mypmspro/library/Table/MessageTable.php',
+    ];
+
+**State storage.** The plugin stores hash data in its own `params` JSON in `#__extensions`, using the same direct-UPDATE pattern that `plg_system_stats` uses in Joomla core. Two params keys are used:
+
+- `upstream_hashes` — a JSON object mapping each tracked file path to its SHA256 hash (e.g., `{"components/.../StatusField.php": "abc123...", ...}`). Computed automatically by the plugin at runtime.
+- `hashes_verified` — a standard radio field in the plugin configuration (`0` = "Not Verified", `1` = "Verified"). Set to `0` programmatically when hashes are first computed or when a file change is detected. Set to `1` only by the administrator saving the plugin settings with the radio set to "Verified".
+
+A private method `saveParams()` persists `$this->params` to `#__extensions` using `$db->lockTable('#__extensions')`, a direct UPDATE query binding the JSON-serialized params, followed by `$db->unlockTables()` and a cache clear of the `com_plugins` group. This follows the pattern from `plg_system_stats::saveParams()`.
+
+**Important:** The plugin does NOT call `disablePlugin()` or set `enabled = 0` in any scenario. If the plugin were to disable itself (e.g., triggered by a frontend visitor's request), Joomla would not load it on subsequent requests, and the administrator would never see the warning — the plugin would silently stop functioning. Instead, the plugin always remains enabled and relies on the `hashes_verified` param to control whether the autoloader is registered. When hashes are not verified, the plugin runs but does nothing except display warnings to administrators.
+
+**Lifecycle flow:**
+
+1. **First install / fresh state.** When `onAfterInitialise()` runs and `upstream_hashes` is empty (not yet computed), the plugin computes `hash_file('sha256', JPATH_SITE . '/' . $path)` for each tracked file, stores the hashes in `upstream_hashes` via `saveParams()`, and sets `hashes_verified` to `0`. The autoloader is NOT registered — the plugin does nothing on the frontend until hashes are verified. On admin pages (`$this->getApplication()->isClient('administrator')`), it enqueues a warning message telling the administrator to review the tracked files and verify the hashes in the plugin configuration. On frontend pages, no message is enqueued (to avoid leaking internal file paths to site visitors).
+
+2. **Admin verification.** The administrator opens the plugin configuration in Extensions > Plugins. The "Upstream File Tracking" fieldset shows:
+   - A read-only custom field (`type="UpstreamHashes"`) displaying each tracked file path and its computed SHA256 hash. This is a custom `FormField` subclass at `plg_system_cbuseronlinestatus/src/Field/UpstreamHashesField.php` that reads the `upstream_hashes` param and renders a simple read-only table — no buttons, no JavaScript, no AJAX.
+   - A standard Joomla `radio` field (`hashes_verified`) with options "Not Verified" (`0`) and "Verified" (`1`).
+
+   The administrator reviews the displayed hashes, confirms the tracked files are as expected, sets the radio to "Verified", and clicks "Save" (the standard Joomla plugin save button). The `hashes_verified` param is persisted to `#__extensions` by Joomla's normal plugin save flow — no custom `saveParams()` call is needed for this step.
+
+3. **Normal operation.** When `onAfterInitialise()` runs and `hashes_verified` is `1`, the plugin checks all tracked files against the stored hashes. If all match, the autoloader is registered and the plugin operates normally. If any hash mismatches (meaning CB has been updated), the plugin:
+   - Recomputes and stores the new hashes via `saveParams()`.
+   - Sets `hashes_verified` to `0` (in the same `saveParams()` call).
+   - On admin pages (`isClient('administrator')`), enqueues a warning message naming the changed file(s) and instructing the administrator to review the changes, update the overrides if needed, and re-verify. On frontend pages, no message is enqueued.
+   - Does NOT register the autoloader for this request. Because the plugin remains enabled, it will continue to display the "not verified" warning (step 2) on every subsequent admin-side request until the admin re-verifies.
+
+4. **Re-verification after CB update.** The administrator reviews the changed CB files (comparing against the override versions), updates the overrides in the plugin package if necessary, reinstalls the package, then opens the plugin configuration, sets "Hashes Verified" to "Verified", and saves. No re-enabling step is needed — the plugin was never disabled.
+
+**Plugin class changes.** The `onAfterInitialise` handler gains the hash-check gate before registering the autoloader. No additional event subscriptions are needed — the verification is a standard Joomla form save, not an AJAX call.
+
+The `onAfterInitialise` method flow becomes:
+
+    // 1. Read hash state
+    $storedHashes = json_decode($this->params->get('upstream_hashes', '{}'), true);
+    $verified     = (bool) $this->params->get('hashes_verified', 0);
+
+    // 2. If no hashes stored yet, compute and store, warn admin
+    if (empty($storedHashes)) {
+        $this->computeAndStoreHashes();
+        // warn admin, do not register autoloader
+        return;
+    }
+
+    // 3. If not verified, warn admin, do not register autoloader
+    if (!$verified) {
+        if ($this->getApplication()->isClient('administrator')) {
+            $this->getApplication()->enqueueMessage(
+                Text::_('PLG_SYSTEM_CBUSERONLINESTATUS_HASHES_NOT_VERIFIED'), 'warning'
+            );
+        }
+        return;
+    }
+
+    // 4. Verified — check for upstream changes
+    if (!$this->verifyUpstreamHashes($storedHashes)) {
+        // Files changed — recompute hashes, set hashes_verified=0, warn admin (admin only)
+        return;
+    }
+
+    // 5. All good — read timeout and register autoloader
+    // (existing timeout + autoloader logic here)
+
+**Manifest XML changes.** Add `addfieldprefix` to the `<fields>` element. Add the hash display and verification radio in a new fieldset:
+
+    <fields name="params" addfieldprefix="YakShaver\Plugin\System\Cbuseronlinestatus\Field">
+        <fieldset name="basic" label="COM_PLUGINS_BASIC_FIELDSET_LABEL">
+            <!-- existing fields (timeout_source, online_timeout) -->
+        </fieldset>
+        <fieldset name="upstream" label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELDSET_UPSTREAM_LABEL">
+            <field
+                name="upstream_hashes_display"
+                type="UpstreamHashes"
+                label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_UPSTREAM_HASHES_LABEL"
+                description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_UPSTREAM_HASHES_DESC"
+            />
+            <field
+                name="hashes_verified"
+                type="radio"
+                label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_HASHES_VERIFIED_LABEL"
+                description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_HASHES_VERIFIED_DESC"
+                default="0"
+                class="btn-group"
+            >
+                <option value="0">PLG_SYSTEM_CBUSERONLINESTATUS_NOT_VERIFIED</option>
+                <option value="1">PLG_SYSTEM_CBUSERONLINESTATUS_VERIFIED</option>
+            </field>
+        </fieldset>
+    </fields>
+
+**New file.** `plg_system_cbuseronlinestatus/src/Field/UpstreamHashesField.php` — a custom `FormField` subclass that reads the `upstream_hashes` param from the plugin's stored params, and renders a read-only HTML table listing each tracked file path and its SHA256 hash. No buttons, no JavaScript, no AJAX. If no hashes have been computed yet, it displays a notice that hashes will be computed on the next page load.
+
+**Language strings to add to `plg_system_cbuseronlinestatus.ini`:**
+
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELDSET_UPSTREAM_LABEL="Upstream File Tracking"
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_UPSTREAM_HASHES_LABEL="Tracked CB File Hashes"
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_UPSTREAM_HASHES_DESC="SHA256 hashes of the original CB files that this plugin overrides. Review these after a CB update to confirm the overrides are still compatible."
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_HASHES_VERIFIED_LABEL="Hashes Verified"
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_HASHES_VERIFIED_DESC="Set to 'Verified' after reviewing the tracked file hashes. The plugin will not activate its overrides until this is set to 'Verified'. This is automatically reset to 'Not Verified' if CB updates the tracked files."
+    PLG_SYSTEM_CBUSERONLINESTATUS_NOT_VERIFIED="Not Verified"
+    PLG_SYSTEM_CBUSERONLINESTATUS_VERIFIED="Verified"
+    PLG_SYSTEM_CBUSERONLINESTATUS_HASHES_NOT_VERIFIED="CB User Online Status: The tracked CB file hashes have not been verified. The plugin overrides are inactive. Please open the plugin configuration, review the hashes, and set 'Hashes Verified' to 'Verified'."
+    PLG_SYSTEM_CBUSERONLINESTATUS_UPSTREAM_CHANGED="CB User Online Status: Community Builder has updated "%s". The plugin overrides have been deactivated to prevent conflicts. Please review the changes, update the overrides if needed, and re-verify the hashes in the plugin configuration."
+    PLG_SYSTEM_CBUSERONLINESTATUS_HASHES_PENDING="Hashes have not been computed yet. They will be calculated on the next page load."
+
+**Verification:** Install a fresh build of the plugin. After installation, the plugin is enabled but the autoloader is inactive — CB's original classes load as usual. On admin pages, a warning appears prompting verification (no warning on frontend pages). Open the plugin configuration: the "Upstream File Tracking" fieldset shows the two tracked files with their computed hashes and a "Hashes Verified" radio set to "Not Verified". Set it to "Verified" and click Save. Refresh the frontend: the overrides are now active (verify via V2 and V8 from Milestone 8). Then manually alter one byte in the original CB `StatusField.php` (e.g., add a trailing comment), refresh any admin page — the plugin detects the change, deactivates overrides, and enqueues a warning naming the changed file. Confirm that CB's original `StatusField` loads on the frontend (the timeout override is gone) and that no warning is shown to frontend visitors. Remove the added comment, open plugin config (the radio is back to "Not Verified" and new hashes are shown), set to "Verified", save, and confirm overrides are active again — no re-enabling step is needed since the plugin was never disabled.
+
+#### 10b — Decouple module from plugin namespace (addresses review Section 5.2)
+
+Currently the module helper (`mod_cbuseronlinestatus/src/Helper/CbUserOnlineStatusHelper.php`) checks for the plugin class by its fully qualified namespace (`\YakShaver\Plugin\System\Cbuseronlinestatus\Extension\CbUserOnlineStatus`) to read the timeout. While functional, this means the module has compile-time knowledge of the plugin's internal namespace structure.
+
+The recommended decoupling uses Joomla's application state as a lightweight shared-state mechanism. The change has two sides:
+
+Plugin side: In the `onAfterInitialise()` method of `CbUserOnlineStatus.php`, after setting the static timeout property, add one line:
+
+    $this->getApplication()->set('cbuserstatus.timeout', self::$onlineTimeout);
+
+Module side: In `CbUserOnlineStatusHelper::getOnlineTimeout()`, replace the current `class_exists` check with a read from application state:
+
+    public function getOnlineTimeout(Registry $params): int
+    {
+        $timeout = Factory::getApplication()->get('cbuserstatus.timeout', 0);
+        if ($timeout > 0) {
+            return $timeout;
+        }
+        return (int) $params->get('online_timeout', 1800);
+    }
+
+This preserves the same priority chain (plugin value > module parameter > 1800 default) without any namespace coupling. If the plugin is disabled or not installed, the application state key does not exist and the module falls back to its own parameter.
+
+The `StatusField.php` and `MessageTable.php` overrides continue to call `CbUserOnlineStatus::getOnlineTimeout()` directly — this is acceptable because they are shipped inside the plugin package and are guaranteed to coexist with the plugin class.
+
+Verification: Install the updated package. Confirm that the module still displays the correct timeout-filtered online users. Then disable the system plugin in Extensions > Plugins, confirm the module falls back to its own `online_timeout` parameter (set it to a different value, e.g., 900, and verify the module uses 900). Re-enable the plugin and confirm it takes precedence again.
+
+#### 10c — Kunena timeout synchronization (addresses new requirement)
+
+Kunena forum has its own session timeout setting (`sessionTimeOut`, default 1800 seconds) in `Kunena\Forum\Libraries\Config\KunenaConfig`. When both CB User Online Status and Kunena are active on the same site, having two independent timeout values creates a UX inconsistency: a user could appear "online" in CB but "offline" in Kunena (or vice versa) if the timeouts diverge.
+
+This sub-milestone adds a `timeout_source` parameter to the plugin that allows the administrator to synchronize the timeout with Kunena's configuration instead of maintaining a separate value.
+
+Add a new field to the plugin XML manifest (`plg_system_cbuseronlinestatus/cbuseronlinestatus.xml`), in the `basic` fieldset, before the existing `online_timeout` field:
+
+    <field
+        name="timeout_source"
+        type="list"
+        label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_LABEL"
+        description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_DESC"
+        default="manual"
+    >
+        <option value="manual">PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_MANUAL</option>
+        <option value="kunena">PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_KUNENA</option>
+    </field>
+
+The `online_timeout` number field remains in the form for both modes, but its behavior changes based on `timeout_source`:
+
+- When `timeout_source` is `manual`: the field is a normal editable number input (current behavior).
+- When `timeout_source` is `kunena`: the field is rendered as a readonly, greyed-out input showing the actual value read from Kunena's configuration. This lets the administrator see the effective timeout without being able to edit it (since the value is controlled by Kunena).
+
+To achieve this, replace the standard `type="number"` field with a custom form field class `type="OnlineTimeout"` at `plg_system_cbuseronlinestatus/src/Field/OnlineTimeoutField.php` (discovered via the same `addfieldprefix` already added in 10a). This class extends `Joomla\CMS\Form\Field\NumberField` and overrides `getInput()`:
+
+- It reads the `timeout_source` value from the form data (`$this->form->getValue('timeout_source', 'params', 'manual')`).
+- If the source is `kunena` and `Kunena\Forum\Libraries\Config\KunenaConfig` exists, it reads `KunenaConfig::getInstance()->sessionTimeOut`, sets the field value to that integer, and renders the `<input>` element with `disabled="disabled"` and the `name` attribute removed so the Kunena value is strictly for display and is NOT submitted with the form. This prevents the Kunena timeout value from overwriting the user's previously configured manual value in the database — if Kunena is later uninstalled or the source is switched back to "manual", the original manual value is preserved.
+- If the source is `kunena` but Kunena is not installed, it renders the field as disabled with the current manual value and appends a small warning note below the input ("Kunena not installed — showing manual fallback value").
+- If the source is `manual`, it delegates to the parent `NumberField::getInput()` for standard editable behavior.
+
+Update the `online_timeout` field definition in the plugin manifest:
+
+    <field
+        name="online_timeout"
+        type="OnlineTimeout"
+        label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_LABEL"
+        description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_DESC"
+        default="1800"
+        filter="integer"
+        validate="number"
+        min="60"
+    />
+
+In `CbUserOnlineStatus::onAfterInitialise()`, modify the timeout resolution logic:
+
+    $source = $this->params->get('timeout_source', 'manual');
+
+    if ($source === 'kunena') {
+        $kunenaConfigClass = '\\Kunena\\Forum\\Libraries\\Config\\KunenaConfig';
+        if (class_exists($kunenaConfigClass)) {
+            $kunenaConfig = $kunenaConfigClass::getInstance();
+            if ($kunenaConfig !== null) {
+                self::$onlineTimeout = (int) $kunenaConfig->sessionTimeOut;
+            }
+        } else {
+            // Kunena not installed — fall back to manual value and log a notice
+            self::$onlineTimeout = (int) $this->params->get('online_timeout', 1800);
+            $this->getApplication()->enqueueMessage(
+                Text::_('PLG_SYSTEM_CBUSERONLINESTATUS_KUNENA_NOT_FOUND'),
+                'warning'
+            );
+        }
+    } else {
+        self::$onlineTimeout = (int) $this->params->get('online_timeout', 1800);
+    }
+
+Add the `use Joomla\CMS\Language\Text;` import if not already present.
+
+Language strings to add to `plg_system_cbuseronlinestatus.ini`:
+
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_LABEL="Timeout Source"
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_DESC="Where to read the online timeout value from. 'Manual' uses the value configured below. 'Kunena' reads the session timeout from Kunena's forum configuration, keeping both in sync automatically."
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_MANUAL="Manual"
+    PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_KUNENA="Kunena Forum"
+    PLG_SYSTEM_CBUSERONLINESTATUS_KUNENA_NOT_FOUND="CB User Online Status: Timeout source is set to 'Kunena' but the Kunena component is not installed. Falling back to manual timeout value."
+    PLG_SYSTEM_CBUSERONLINESTATUS_KUNENA_NOT_INSTALLED_NOTE="Kunena not installed — showing manual fallback value."
+
+Verification: Install the updated plugin. In the plugin configuration, set "Timeout Source" to "Kunena Forum" — the "Online Timeout (seconds)" field should remain visible but become greyed out and disabled, displaying Kunena's current `sessionTimeOut` value (e.g., 1800). The disabled field is not submitted with the form, so clicking Save does not overwrite the stored manual value. Change Kunena's session timeout (Components > Kunena Forum > Configuration > General > Session time out) to a different value (e.g., 900 seconds), then reopen the plugin configuration — the disabled field should now show 900. Switch back to "Manual" and confirm the field becomes editable again and shows the original stored manual value (not the Kunena value).
+
 ## Concrete Steps
 
 (To be updated as implementation proceeds. Below is the initial command sequence.)
@@ -768,3 +1014,7 @@ In `mod_cbuseronlinestatus/src/Dispatcher/Dispatcher.php`, define:
 - 2026-02-21: Plan amended per review v5 (`docs/execution_plan.review.v5.md`). Addressed all 3 findings: fixed V1 baseline to search `time() - $lastTime` in StatusField (not `UNIX_TIMESTAMP`), fixed Milestone 9 revert to use same diagnostic pattern, tightened module revert check to exact `UNIX_TIMESTAMP() - time <= 1800` expression. See `docs/execution_changelog.md` for full details.
 - 2026-02-21: Plan amended per review v6 (`docs/execution_plan.review.v6.md`). Addressed 1 low-severity finding: added full relative paths to Milestone 9 revert verification commands (previously bare filenames, not runnable from site root). See `docs/execution_changelog.md` for full details.
 - 2026-02-22: Post-release repo review updated the plan status to reflect the shipped v1.0.0 implementation (Milestones 1-9 completed) and populated Outcomes & Retrospective. See `docs/execution_changelog.md` for details.
+- 2026-02-22: Plan amended per code review v6 (`docs/code_review.v6.md`). Added Milestone 10 with three sub-milestones: 10a (upstream file-hash verification), 10b (module-plugin namespace decoupling via application state), 10c (Kunena timeout synchronization via `timeout_source` parameter). Added 3 decisions to Decision Log. See `docs/execution_changelog.md` for details.
+- 2026-02-22: Milestone 10a redesigned per user feedback: changed from passive admin warning to active verification gate with self-disabling. Plugin now computes and stores hashes on install, requires explicit admin verification via custom form field button before activating overrides, and automatically disables itself when upstream files change. Uses `saveParams()` and `disablePlugin()` patterns from `plg_system_stats`. Milestone 10c updated: timeout field shown as readonly greyed-out input (not hidden) when source is Kunena, using a custom `OnlineTimeoutField` form field class. Updated directory structure to include new files. See `docs/execution_changelog.md` for details.
+- 2026-02-22: Milestone 10a simplified per user feedback: replaced AJAX-based "Mark as Verified" button with a standard Joomla `radio` field (`hashes_verified`) in the plugin settings. Admin reviews hashes in a read-only `UpstreamHashes` custom field, sets radio to "Verified", and clicks standard Save. Eliminates need for `com_ajax` handler, `onAjaxCbuseronlinestatus` event, `VerifyHashesField.php`, and JavaScript. Renamed custom field file from `VerifyHashesField.php` to `UpstreamHashesField.php` (read-only display only). See `docs/execution_changelog.md` for details.
+- 2026-02-22: Plan amended per review v7 (`docs/execution_plan.review.v7.md`). Addressed all 3 findings: (High) removed `disablePlugin()` from 10a — plugin stays enabled and relies on `hashes_verified` param to gate autoloader, ensuring admin always sees warnings; (Medium) wrapped all 10a warning messages in `isClient('administrator')` guard to prevent frontend visitors from seeing file paths; (Low) changed 10c `OnlineTimeoutField` from `readonly` to `disabled` with `name` attribute removed, so Kunena value is display-only and doesn't overwrite the stored manual value on form save. See `docs/execution_changelog.md` for details.

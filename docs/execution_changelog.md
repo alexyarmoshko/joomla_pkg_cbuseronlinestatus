@@ -1,5 +1,48 @@
 # Execution Changelog — pkg_cbuseronlinestatus
 
+## 2026-02-22 (review v7 — remove self-disabling, frontend leak guard, Kunena field fix)
+
+- Completed review v7 (`docs/execution_plan.review.v7.md`). 1 high, 1 medium, 1 low-severity finding.
+- Amended execution plan to address all 3 findings:
+  - (High) **Milestone 10a**: Removed `disablePlugin()` entirely. The plugin no longer sets `enabled = 0` in any scenario. If a frontend visitor's request triggers a hash mismatch, `disablePlugin()` would have prevented the admin from ever seeing the warning (the plugin would not load on subsequent requests). Instead, the plugin stays enabled and relies purely on `hashes_verified = 0` to gate the autoloader. The plugin continues running on every request but only displays warnings on admin pages and only registers the autoloader when hashes are verified.
+  - (Medium) **Milestone 10a**: Wrapped all warning messages (`PLG_SYSTEM_CBUSERONLINESTATUS_HASHES_NOT_VERIFIED` and `PLG_SYSTEM_CBUSERONLINESTATUS_UPSTREAM_CHANGED`) in `isClient('administrator')` checks. Previously, if a frontend visitor triggered the hash computation or mismatch, the warning (containing internal file paths) could leak into the frontend template output.
+  - (Low) **Milestone 10c**: Changed `OnlineTimeoutField` from `readonly="readonly"` to `disabled="disabled"` with the `name` attribute removed when in Kunena mode. A `readonly` field is still submitted in the POST payload, which would overwrite the user's stored manual timeout value with the Kunena value on every save. Using `disabled` (with no `name`) ensures the Kunena value is display-only. When the admin switches back to "manual" mode, the original stored manual value is preserved.
+- Updated Decision Log entry for 10a to reflect the no-disable approach and cite review v7.
+- Updated `PLG_SYSTEM_CBUSERONLINESTATUS_UPSTREAM_CHANGED` language string: "disabled" → "deactivated".
+- Updated Revision History.
+
+## 2026-02-22 (Milestone 10a simplification — standard radio field)
+
+- **Milestone 10a** simplified: replaced AJAX-based "Mark as Verified" button (`VerifyHashesField.php` + `com_ajax` + `onAjaxCbuseronlinestatus()` + JavaScript) with a standard Joomla `radio` field (`hashes_verified`) in the plugin settings.
+  - Admin reviews hashes in a read-only `UpstreamHashesField.php` custom field (displays file paths and SHA256 hashes as a table, no interactivity).
+  - Admin sets `hashes_verified` radio to "Verified" and clicks the standard Joomla Save button — no AJAX, no custom buttons, no JavaScript needed.
+  - Eliminated: `VerifyHashesField.php`, `onAjaxCbuseronlinestatus()` event handler, `com_ajax` routing, inline JavaScript.
+  - Added: `UpstreamHashesField.php` (read-only display), standard `radio` field definition in manifest XML.
+- Updated Decision Log, directory structure (`VerifyHashesField.php` → `UpstreamHashesField.php`), and Revision History.
+
+## 2026-02-22 (Milestone 10a/10c redesign per user feedback)
+
+- **Milestone 10a** redesigned from passive admin warning to active verification gate with self-disabling:
+  - Plugin computes and stores SHA256 hashes in its own `#__extensions` params on first run (using `saveParams()` pattern from `plg_system_stats`).
+  - Hashes start unverified (`hashes_verified = 0`); plugin refuses to register autoloader until admin explicitly verifies.
+  - Admin verifies via a custom `VerifyHashesField` form field in the plugin configuration, which renders tracked files, hashes, and a "Mark as Verified" button (AJAX via `com_ajax` + `onAjaxCbuseronlinestatus()`).
+  - On subsequent requests, if any tracked file's hash mismatches the stored value, the plugin recomputes hashes, resets `hashes_verified` to `0`, calls `disablePlugin()` (same pattern as `plg_system_stats`), and warns the admin.
+  - Admin must review changes, re-verify hashes, and manually re-enable the plugin.
+- **Milestone 10c** updated: when `timeout_source` is `kunena`, the `online_timeout` field is shown as a readonly greyed-out input displaying the actual Kunena `sessionTimeOut` value, instead of being hidden. Implemented via a custom `OnlineTimeoutField` form field class extending `NumberField`.
+- Updated Decision Log entry for 10a to reflect the verification gate design.
+- Updated directory structure to include `VerifyHashesField.php` and `OnlineTimeoutField.php`.
+- Updated Revision History.
+
+## 2026-02-22 (code review v6 — post-release hardening milestone)
+
+- Completed code review v6 (`docs/code_review.v6.md`). The review approved the package as production-ready and identified two areas of risk (upstream synchronization, plugin coupling) with proposed solutions.
+- Added Milestone 10 to execution plan with three sub-milestones:
+  - **10a — Upstream file-hash verification**: Store SHA256 hashes of the original CB `StatusField.php` and `MessageTable.php` in the plugin. On admin page loads (throttled to once per 24 hours), hash the live CB files and compare. If a mismatch is detected, enqueue a Joomla warning message alerting the administrator. This addresses the residual risk of CB updates silently being masked by the overrides (review Section 5.1).
+  - **10b — Module-plugin namespace decoupling**: Replace the module helper's direct `class_exists` check against the plugin's FQCN with a Joomla application state read (`Factory::getApplication()->get('cbuserstatus.timeout')`). The plugin sets this value in `onAfterInitialise`. This eliminates the compile-time namespace dependency while preserving the same priority chain (review Section 5.2).
+  - **10c — Kunena timeout synchronization**: Add a `timeout_source` list parameter (`manual` / `kunena`) to the plugin. When set to `kunena`, the plugin reads `KunenaConfig::getInstance()->sessionTimeOut` at runtime instead of using its own `online_timeout` field. If Kunena is not installed, falls back to manual value with a warning. This keeps CB online status and Kunena forum session timeout in sync automatically (new requirement from user).
+- Added 3 decisions to Decision Log (file-hash strategy, application-state decoupling, Kunena sync).
+- Updated Progress, Revision History, and this changelog.
+
 ## 2026-02-22 (post-release repo review)
 
 - Reviewed the repository against the released implementation and current docs.
