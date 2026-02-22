@@ -21,6 +21,14 @@ defined('_JEXEC') or die;
 /** @var string $sublayout */
 
 $pluginsEnabled = (int) $params->get('cb_plugins', 0) && class_exists('modCBOnlineHelper', false);
+$beforeLinksPlugins = '';
+$afterUsersPlugins = '';
+
+if ($pluginsEnabled) {
+    // Cache hook output so hooks are not executed twice (condition + render).
+    $beforeLinksPlugins = (string) \modCBOnlineHelper::getPlugins($params, 'beforeLinks');
+    $afterUsersPlugins = (string) \modCBOnlineHelper::getPlugins($params, 'afterUsers');
+}
 
 // Delegate to sublayouts for statistics (mode 6) and census (mode 7)
 if (!empty($sublayout)) {
@@ -42,11 +50,9 @@ if (!empty($sublayout)) {
 <?php if ($pluginsEnabled) {
     echo \modCBOnlineHelper::getPlugins($params, 'beforeUsers');
 } ?>
-<?php if (($pluginsEnabled && \modCBOnlineHelper::getPlugins($params, 'beforeLinks')) || $cbUsers || ($pluginsEnabled && \modCBOnlineHelper::getPlugins($params, 'afterUsers'))) { ?>
+<?php if ($beforeLinksPlugins || $cbUsers || $afterUsersPlugins) { ?>
     <ul class="m-0 unstyled list-unstyled cbOnlineUsers">
-        <?php if ($pluginsEnabled) {
-            echo \modCBOnlineHelper::getPlugins($params, 'beforeLinks');
-        } ?>
+        <?php echo $beforeLinksPlugins; ?>
         <?php foreach ($cbUsers as $cbUser) { ?>
             <li class="cbOnlineUser">
                 <?php
@@ -58,9 +64,7 @@ if (!empty($sublayout)) {
                 ?>
             </li>
         <?php } ?>
-        <?php if ($pluginsEnabled) {
-            echo \modCBOnlineHelper::getPlugins($params, 'afterUsers');
-        } ?>
+        <?php echo $afterUsersPlugins; ?>
     </ul>
 <?php } ?>
 <?php if ($pluginsEnabled) {
