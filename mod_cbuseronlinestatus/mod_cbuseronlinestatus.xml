@@ -217,6 +217,6 @@
 
     <updateservers>
         <server type="extension" name="Yak Shaver CB User Online Status Module Updates">
-            https://raw.githubusercontent.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/refs/heads/main/mod_cbuseronlinestatus.update.xml</server>
+            https://raw.githubusercontent.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/refs/heads/main/mod_cbuseronlinestatus/mod_cbuseronlinestatus.update.xml</server>
     </updateservers>
 </extension>

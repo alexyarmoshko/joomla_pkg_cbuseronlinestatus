@@ -1,90 +1,56 @@
-# Makefile for pkg_cbuseronlinestatus
-# Builds plugin, module, and package ZIPs with update XML patching.
+# Makefile for pkg_cbuseronlinestatus — Joomla package
+#
+# Delegates to sub-Makefiles for the plugin and module, then builds the
+# package ZIP and patches the package update XML.
+#
+# Usage:
+#   make info    — show package metadata
+#   make dist    — build all ZIPs and update manifests
+#   make clean   — remove all built ZIPs
+#
+# @author      Yak Shaver <me@kayakshaver.com>
+# @copyright   (C) 2026 Yak Shaver https://www.kayakshaver.com
+# @license     GNU General Public License version 2 or later; see LICENSE.txt
 
 NAME         := cbuseronlinestatus
-PLG_NAME     := plg_system_$(NAME)
-MOD_NAME     := mod_$(NAME)
+PLG_DIR      := plg_system_$(NAME)
+MOD_DIR      := mod_$(NAME)
 PKG_NAME     := pkg_$(NAME)
+PKG_MANIFEST := $(PKG_NAME).xml
+PKG_UPDATE   := $(PKG_NAME).update.xml
+INST_DIR     := installation
+
+VERSION      := $(shell awk -F'[<>]' '/<version>/{print $$3; exit}' "$(PKG_MANIFEST)")
+PLG_ZIP      := plg_system_$(NAME)-$(VERSION).zip
+MOD_ZIP      := mod_$(NAME)-$(VERSION).zip
+PKG_ZIP      := $(PKG_NAME)-$(VERSION).zip
 
 GITHUB_OWNER ?= alexyarmoshko
 GITHUB_REPO  ?= joomla_pkg_cbuseronlinestatus
 
-# Read version from the package manifest
-VERSION      := $(shell awk -F'[<>]' '/<version>/{print $$3; exit}' "$(PKG_NAME).xml")
-
-PLG_DIR      := $(PLG_NAME)
-MOD_DIR      := $(MOD_NAME)
-
-PLG_ZIP      := $(PLG_NAME)-$(VERSION).zip
-MOD_ZIP      := $(MOD_NAME)-$(VERSION).zip
-PKG_ZIP      := $(PKG_NAME)-$(VERSION).zip
-
-INST_DIR     := installation
-
 .PHONY: info dist clean
 
 info:
-	@echo "Name:    $(PKG_NAME)"
+	@echo "Package: $(PKG_NAME)"
 	@echo "Version: $(VERSION)"
-	@echo "Plugin:  $(PLG_ZIP)"
-	@echo "Module:  $(MOD_ZIP)"
-	@echo "Package: $(PKG_ZIP)"
+	@echo "Plugin:  $(INST_DIR)/$(PLG_ZIP)"
+	@echo "Module:  $(INST_DIR)/$(MOD_ZIP)"
+	@echo "Package: $(INST_DIR)/$(PKG_ZIP)"
 
 dist: clean
-	@mkdir -p $(INST_DIR)
-
-	@echo "--- Building plugin ZIP ---"
-	cp --preserve LICENSE $(PLG_DIR)/LICENSE
-	cd $(PLG_DIR) && zip -r ../$(INST_DIR)/$(PLG_ZIP) . -x ".*"
-	rm $(PLG_DIR)/LICENSE
-
-	@echo "--- Building module ZIP ---"
-	cp --preserve LICENSE $(MOD_DIR)/LICENSE
-	cd $(MOD_DIR) && zip -r ../$(INST_DIR)/$(MOD_ZIP) . -x ".*"
-	rm $(MOD_DIR)/LICENSE
-
-	@echo "--- Updating plugin update XML ---"
-	@SHA256="$$( (command -v sha256sum >/dev/null && sha256sum "$(INST_DIR)/$(PLG_ZIP)" || shasum -a 256 "$(INST_DIR)/$(PLG_ZIP)") | awk '{print $$1}' )"; \
-	echo "Plugin SHA256:  $$SHA256"; \
-	awk -v version="$(VERSION)" \
-	    -v url="https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/v$(VERSION)/$(PLG_ZIP)" \
-	    -v sha="$$SHA256" '{ \
-		if ($$0 ~ /<version>[^<]+<\/version>/) { \
-			sub(/<version>[^<]+<\/version>/, "<version>" version "</version>"); \
-		} else if ($$0 ~ /<downloadurl[^>]*>[^<]+<\/downloadurl>/) { \
-			sub(/<downloadurl[^>]*>[^<]+<\/downloadurl>/, "<downloadurl type=\"full\" format=\"zip\">" url "</downloadurl>"); \
-		} else if ($$0 ~ /<sha256>[^<]+<\/sha256>/) { \
-			sub(/<sha256>[^<]+<\/sha256>/, "<sha256>" sha "</sha256>"); \
-		} \
-		print; \
-	}' "$(PLG_NAME).update.xml" > "$(PLG_NAME).update.xml.tmp" && mv "$(PLG_NAME).update.xml.tmp" "$(PLG_NAME).update.xml"
-
-	@echo "--- Updating module update XML ---"
-	@SHA256="$$( (command -v sha256sum >/dev/null && sha256sum "$(INST_DIR)/$(MOD_ZIP)" || shasum -a 256 "$(INST_DIR)/$(MOD_ZIP)") | awk '{print $$1}' )"; \
-	echo "Module SHA256:  $$SHA256"; \
-	awk -v version="$(VERSION)" \
-	    -v url="https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/v$(VERSION)/$(MOD_ZIP)" \
-	    -v sha="$$SHA256" '{ \
-		if ($$0 ~ /<version>[^<]+<\/version>/) { \
-			sub(/<version>[^<]+<\/version>/, "<version>" version "</version>"); \
-		} else if ($$0 ~ /<downloadurl[^>]*>[^<]+<\/downloadurl>/) { \
-			sub(/<downloadurl[^>]*>[^<]+<\/downloadurl>/, "<downloadurl type=\"full\" format=\"zip\">" url "</downloadurl>"); \
-		} else if ($$0 ~ /<sha256>[^<]+<\/sha256>/) { \
-			sub(/<sha256>[^<]+<\/sha256>/, "<sha256>" sha "</sha256>"); \
-		} \
-		print; \
-	}' "$(MOD_NAME).update.xml" > "$(MOD_NAME).update.xml.tmp" && mv "$(MOD_NAME).update.xml.tmp" "$(MOD_NAME).update.xml"
+	@$(MAKE) -C $(PLG_DIR) dist
+	@$(MAKE) -C $(MOD_DIR) dist
 
 	@echo "--- Building package ZIP ---"
-	cp $(PKG_NAME).xml $(PKG_NAME).xml.bak
-	sed -i 's/$(PLG_NAME)\.zip/$(PLG_ZIP)/g; s/$(MOD_NAME)\.zip/$(MOD_ZIP)/g' $(PKG_NAME).xml
-	zip -r $(INST_DIR)/$(PKG_ZIP) \
-		$(PKG_NAME).xml \
+	cp $(PKG_MANIFEST) $(PKG_MANIFEST).bak
+	sed -i 's/plg_system_$(NAME)\.zip/$(PLG_ZIP)/g; s/mod_$(NAME)\.zip/$(MOD_ZIP)/g' $(PKG_MANIFEST)
+	zip -r -X $(INST_DIR)/$(PKG_ZIP) \
+		$(PKG_MANIFEST) \
 		$(INST_DIR)/$(PLG_ZIP) \
 		$(INST_DIR)/$(MOD_ZIP) \
 		language/ \
 		LICENSE
-	mv $(PKG_NAME).xml.bak $(PKG_NAME).xml
+	mv $(PKG_MANIFEST).bak $(PKG_MANIFEST)
 
 	@echo "--- Updating package update XML ---"
 	@SHA256="$$( (command -v sha256sum >/dev/null && sha256sum "$(INST_DIR)/$(PKG_ZIP)" || shasum -a 256 "$(INST_DIR)/$(PKG_ZIP)") | awk '{print $$1}' )"; \
@@ -100,7 +66,7 @@ dist: clean
 			sub(/<sha256>[^<]+<\/sha256>/, "<sha256>" sha "</sha256>"); \
 		} \
 		print; \
-	}' "$(PKG_NAME).update.xml" > "$(PKG_NAME).update.xml.tmp" && mv "$(PKG_NAME).update.xml.tmp" "$(PKG_NAME).update.xml"
+	}' "$(PKG_UPDATE)" > "$(PKG_UPDATE).tmp" && mv "$(PKG_UPDATE).tmp" "$(PKG_UPDATE)"
 
 	@echo ""
 	@echo "=== Build complete ==="
@@ -109,4 +75,6 @@ dist: clean
 	@echo "  $(INST_DIR)/$(PKG_ZIP)"
 
 clean:
-	rm -f $(INST_DIR)/$(PLG_ZIP) $(INST_DIR)/$(MOD_ZIP) $(INST_DIR)/$(PKG_ZIP)
+	@$(MAKE) -C $(PLG_DIR) clean
+	@$(MAKE) -C $(MOD_DIR) clean
+	@rm -f $(INST_DIR)/$(PKG_ZIP)
