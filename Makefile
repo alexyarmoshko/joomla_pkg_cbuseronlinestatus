@@ -10,7 +10,7 @@ GITHUB_OWNER ?= alexyarmoshko
 GITHUB_REPO  ?= joomla_pkg_cbuseronlinestatus
 
 # Read version from the package manifest
-VERSION      := $(shell grep -oP '(?<=<version>)[^<]+' $(PKG_NAME).xml)
+VERSION      := $(shell awk -F'[<>]' '/<version>/{print $$3; exit}' "$(PKG_NAME).xml")
 
 PLG_DIR      := $(PLG_NAME)
 MOD_DIR      := $(MOD_NAME)
@@ -34,12 +34,12 @@ dist: clean
 	@mkdir -p $(INST_DIR)
 
 	@echo "--- Building plugin ZIP ---"
-	cp LICENSE $(PLG_DIR)/LICENSE
+	cp --preserve LICENSE $(PLG_DIR)/LICENSE
 	cd $(PLG_DIR) && zip -r ../$(INST_DIR)/$(PLG_ZIP) . -x ".*"
 	rm $(PLG_DIR)/LICENSE
 
 	@echo "--- Building module ZIP ---"
-	cp LICENSE $(MOD_DIR)/LICENSE
+	cp --preserve LICENSE $(MOD_DIR)/LICENSE
 	cd $(MOD_DIR) && zip -r ../$(INST_DIR)/$(MOD_ZIP) . -x ".*"
 	rm $(MOD_DIR)/LICENSE
 
