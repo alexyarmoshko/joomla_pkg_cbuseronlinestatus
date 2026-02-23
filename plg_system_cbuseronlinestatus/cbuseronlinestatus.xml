@@ -24,11 +24,21 @@
 	</languages>
 
 	<config>
-		<fields name="params">
+		<fields name="params" addfieldprefix="YakShaver\Plugin\System\Cbuseronlinestatus\Field">
 			<fieldset name="basic" label="COM_PLUGINS_BASIC_FIELDSET_LABEL">
 				<field
+					name="timeout_source"
+					type="list"
+					label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_LABEL"
+					description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_DESC"
+					default="manual"
+				>
+					<option value="manual">PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_MANUAL</option>
+					<option value="kunena">PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_TIMEOUT_SOURCE_KUNENA</option>
+				</field>
+				<field
 					name="online_timeout"
-					type="number"
+					type="OnlineTimeout"
 					label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_LABEL"
 					description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_DESC"
 					default="1800"
@@ -36,6 +46,31 @@
 					validate="number"
 					min="60"
 				/>
+			</fieldset>
+			<fieldset name="upstream" label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELDSET_UPSTREAM_LABEL">
+				<field
+					name="upstream_hashes"
+					type="hidden"
+					default="{}"
+					filter="raw"
+				/>
+				<field
+					name="upstream_hashes_display"
+					type="UpstreamHashes"
+					label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_UPSTREAM_HASHES_LABEL"
+					description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_UPSTREAM_HASHES_DESC"
+				/>
+				<field
+					name="hashes_verified"
+					type="radio"
+					label="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_HASHES_VERIFIED_LABEL"
+					description="PLG_SYSTEM_CBUSERONLINESTATUS_FIELD_HASHES_VERIFIED_DESC"
+					default="0"
+					class="btn-group"
+				>
+					<option value="0">PLG_SYSTEM_CBUSERONLINESTATUS_NOT_VERIFIED</option>
+					<option value="1">PLG_SYSTEM_CBUSERONLINESTATUS_VERIFIED</option>
+				</field>
 			</fieldset>
 		</fields>
 	</config>

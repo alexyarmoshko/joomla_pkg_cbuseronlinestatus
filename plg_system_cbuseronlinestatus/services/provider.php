@@ -30,6 +30,7 @@ return new class () implements ServiceProviderInterface {
                     (array) PluginHelper::getPlugin('system', 'cbuseronlinestatus')
                 );
                 $plugin->setApplication(Factory::getApplication());
+                $plugin->setDatabase($container->get(\Joomla\Database\DatabaseInterface::class));
 
                 return $plugin;
             }
