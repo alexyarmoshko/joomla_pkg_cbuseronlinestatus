@@ -25,7 +25,7 @@
     </languages>
 
     <config>
-        <fields name="params">
+        <fields name="params" addfieldprefix="Joomla\Module\Cbuseronlinestatus\Site\Field">
             <fieldset name="basic" label="COM_MODULES_BASIC_FIELDSET_LABEL">
                 <field
                     name="mode"
@@ -43,48 +43,22 @@
                 </field>
 
                 <field
+                    name="runtime_timeout_display"
+                    type="RuntimeTimeout"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_RUNTIME_TIMEOUT_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_RUNTIME_TIMEOUT_DESC"
+                />
+
+                <field
                     name="online_timeout"
                     type="number"
-                    label="MOD_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_LABEL"
-                    description="MOD_CBUSERONLINESTATUS_FIELD_ONLINE_TIMEOUT_DESC"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_FALLBACK_TIMEOUT_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_FALLBACK_TIMEOUT_DESC"
                     default="1800"
                     filter="integer"
                     validate="number"
                     min="60"
                 />
-
-                <field
-                    name="limit"
-                    type="number"
-                    label="MOD_CBUSERONLINESTATUS_FIELD_LIMIT_LABEL"
-                    description="MOD_CBUSERONLINESTATUS_FIELD_LIMIT_DESC"
-                    default="30"
-                    filter="integer"
-                    validate="number"
-                    min="1"
-                    showon="mode:1,9"
-                />
-
-                <field
-                    name="exclude"
-                    type="text"
-                    label="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_LABEL"
-                    description="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_DESC"
-                    default=""
-                    filter="string"
-                />
-
-                <field
-                    name="exclude_self"
-                    type="radio"
-                    label="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_SELF_LABEL"
-                    description="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_SELF_DESC"
-                    default="0"
-                    class="btn-group btn-group-yesno"
-                >
-                    <option value="0">JNO</option>
-                    <option value="1">JYES</option>
-                </field>
 
                 <field
                     name="pretext"
@@ -116,6 +90,39 @@
                     rows="3"
                     showon="mode:1,9"
                 />
+
+                <field
+                    name="limit"
+                    type="number"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_LIMIT_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_LIMIT_DESC"
+                    default="30"
+                    filter="integer"
+                    validate="number"
+                    min="1"
+                    showon="mode:1,9"
+                />
+
+                <field
+                    name="exclude"
+                    type="text"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_DESC"
+                    default=""
+                    filter="string"
+                />
+
+                <field
+                    name="exclude_self"
+                    type="radio"
+                    label="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_SELF_LABEL"
+                    description="MOD_CBUSERONLINESTATUS_FIELD_EXCLUDE_SELF_DESC"
+                    default="0"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="1">JYES</option>
+                    <option value="0">JNO</option>
+                </field>
 
                 <field
                     name="label"
@@ -150,8 +157,8 @@
                     default="1"
                     class="btn-group btn-group-yesno"
                 >
-                    <option value="0">JNO</option>
                     <option value="1">JYES</option>
+                    <option value="0">JNO</option>
                 </field>
 
                 <field
@@ -162,8 +169,8 @@
                     default="0"
                     class="btn-group btn-group-yesno"
                 >
-                    <option value="0">JNO</option>
                     <option value="1">JYES</option>
+                    <option value="0">JNO</option>
                 </field>
             </fieldset>
 
@@ -180,6 +187,7 @@
                     name="moduleclass_sfx"
                     type="textarea"
                     label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                    description="COM_MODULES_FIELD_MODULECLASS_SFX_DESC"
                     rows="3"
                     validate="CssIdentifier"
                 />
@@ -188,6 +196,7 @@
                     name="cache"
                     type="list"
                     label="COM_MODULES_FIELD_CACHING_LABEL"
+                    description="COM_MODULES_FIELD_CACHING_DESC"
                     default="0"
                     filter="integer"
                     validate="options"
@@ -200,6 +209,7 @@
                     name="cache_time"
                     type="number"
                     label="COM_MODULES_FIELD_CACHE_TIME_LABEL"
+                    description="COM_MODULES_FIELD_CACHE_TIME_DESC"
                     default="900"
                     filter="integer"
                 />

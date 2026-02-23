@@ -144,7 +144,7 @@ class CbUserOnlineStatusHelper
     /**
      * Returns the effective online timeout in seconds.
      *
-     * Priority: system plugin > module parameter > 1800 default.
+     * Priority: system plugin (via application state) > module parameter > 1800 default.
      *
      * @param   Registry  $params  Module parameters.
      *
@@ -154,9 +154,9 @@ class CbUserOnlineStatusHelper
      */
     public function getOnlineTimeout(Registry $params): int
     {
-        // Check if the system plugin provides a timeout
-        if (class_exists('\\YakShaver\\Plugin\\System\\Cbuseronlinestatus\\Extension\\CbUserOnlineStatus', false)) {
-            return \YakShaver\Plugin\System\Cbuseronlinestatus\Extension\CbUserOnlineStatus::getOnlineTimeout();
+        $timeout = \Joomla\CMS\Factory::getApplication()->get('cbuserstatus.timeout', 0);
+        if ($timeout > 0) {
+            return $timeout;
         }
 
         return (int) $params->get('online_timeout', 1800);

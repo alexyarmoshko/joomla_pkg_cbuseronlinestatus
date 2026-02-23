@@ -1,5 +1,31 @@
 # Execution Changelog — pkg_cbuseronlinestatus
 
+## 2026-02-22 (module timeout UX clarification)
+
+- Improved module configuration UX to reduce confusion after Milestone 10b (plugin timeout via application state):
+  - Added a display-only custom module field `RuntimeTimeoutField.php` that shows the **effective runtime timeout** in module settings (`plugin-published timeout` when available, otherwise the module fallback timeout).
+  - Kept the module's editable timeout parameter for resilience, but relabeled it from **Online Timeout** to **Fallback Timeout** and updated its description to clarify it is used only when the system plugin does not publish a runtime timeout (disabled, unverified, unavailable, etc.).
+  - Added module language strings for the new runtime/fallback labels and descriptions.
+  - Reordered the module's shared basic fields to match the existing CB Online module's settings order more closely (pre/post/user text before limit/exclude, etc.) and aligned shared labels/descriptions with CB wording to reduce admin-side relearning.
+- Updated `README.md` module parameter documentation to describe the new runtime display field and fallback behavior.
+
+## 2026-02-22 (code review v7 fixes)
+
+- Addressed all 3 findings from code review v7 (`docs/code_review.v7.md`):
+  - (Critical) **#1 — Missing database injection**: Added `$plugin->setDatabase(...)` call in `services/provider.php` so `DatabaseAwareTrait::getDatabase()` works when `computeAndStoreHashes()` runs on first request after install/update.
+  - (High) **#2 — `upstream_hashes` not declared in XML**: Added a hidden `upstream_hashes` field (`type="hidden"`, `filter="raw"`) to `cbuseronlinestatus.xml` so Joomla preserves the stored hash JSON when an admin saves plugin configuration.
+  - (Medium) **#3 — `isset()` on nullable hashes**: Replaced `isset($storedHashes[$path])` with `array_key_exists($path, $storedHashes)` in `verifyUpstreamHashes()` so that tracked files stored with a `null` hash (file absent) are correctly recognized as present in the stored state.
+  - (High) **#4 — `getCache` method error**: Replaced `$this->getApplication()->getCache(...)` with `\Joomla\CMS\Factory::getCache(...)` in `saveParams()` since the former method does not exist on the `AdministratorApplication` instance in Joomla 4/5.
+
+## 2026-02-22 (Milestone 10 implementation)
+
+- Implemented Milestone 10 (Post-release hardening) in full:
+  - **10a**: Tracked and verified upstream hashes for `StatusField.php` and `MessageTable.php`. Created `UpstreamHashesField` and updated `CbUserOnlineStatus.php` with the integrity gate and admin verification logic.
+  - **10b**: Decoupled the module from the plugin's internal namespace by reading `cbuserstatus.timeout` from Joomla's application state in the module helper. The plugin publishes this value during `onAfterInitialise()`.
+  - **10c**: Added Kunena session timeout synchronization via the new `timeout_source` parameter and the custom `OnlineTimeoutField` class.
+- Added corresponding language strings to the plugin's en-GB `.ini` file.
+- Completed execution plan review v8 which verified the final corrections to 10a, 10c.
+
 ## 2026-02-22 (review v7 — remove self-disabling, frontend leak guard, Kunena field fix)
 
 - Completed review v7 (`docs/execution_plan.review.v7.md`). 1 high, 1 medium, 1 low-severity finding.

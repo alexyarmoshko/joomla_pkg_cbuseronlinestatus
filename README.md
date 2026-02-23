@@ -39,18 +39,21 @@ This package applies a configurable timeout (default: 30 minutes) to all session
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| Mode | Online Users | One of: Online Users (1), Online Connections (9), Online Statistics (6), User Census (7) |
-| Online Timeout | 1800 | Fallback if the system plugin is not installed/enabled (or not yet loaded) |
-| User Limit | 30 | Maximum users shown (modes 1, 9) |
-| Exclude User IDs | — | Comma-separated user IDs to exclude |
+| Display Mode | Online Users | One of: Online Users (1), Online Connections (9), Online Statistics (6), User Census (7) |
+| Runtime Timeout | 1800* | Effective timeout currently used by the module (plugin runtime timeout when available; otherwise the fallback timeout) |
+| Fallback Timeout | 1800 | Used only when the system plugin does not publish a runtime timeout (for example plugin disabled, not verified, or unavailable) |
+| Limit | 30 | Maximum users shown (modes 1, 9) |
+| Exclude Users | — | Comma-separated user IDs to exclude |
 | Exclude Self | No | Hide the current user from results |
 | Pre-text | — | HTML/text shown before output (supports CB substitutions) |
 | Post-text | — | HTML/text shown after output (supports CB substitutions) |
-| User Text | — | Custom per-user row text with CB substitutions (modes 1, 9) |
-| Label Style | Text Only | Text, icon, or both (modes 6, 7) |
+| User-text | — | Custom per-user row text with CB substitutions (modes 1, 9) |
+| Label Display | Text Only | Text, icon, or both (modes 6, 7) |
 | Thousands Separator | `,` | Number formatting separator (modes 6, 7) |
-| Load CB Template CSS | Yes | Include CB's template stylesheet |
-| Enable CB Plugin Hooks | No | Call CB online-module hook points via `modCBOnlineHelper::getPlugins()` (requires original `mod_comprofileronline` helper) |
+| Load Template | Yes | Include CB's template stylesheet |
+| CB Plugins integration | No | Call CB online-module hook points via `modCBOnlineHelper::getPlugins()` (requires original `mod_comprofileronline` helper) |
+
+`*` The runtime timeout field is display-only in module settings (disabled) and reflects the current effective value at page load.
 
 Standard Joomla advanced module settings (layout, module class suffix, caching) are also available and are not listed above.
 
