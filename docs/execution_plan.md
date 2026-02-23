@@ -698,7 +698,7 @@ Verification: Install the updated package. Confirm that the module still display
 
 #### 10c — Kunena timeout synchronization (addresses new requirement)
 
-Kunena forum has its own session timeout setting (`sessionTimeOut`, default 1800 seconds) in `Kunena\Forum\Libraries\Config\KunenaConfig`. When both CB User Online Status and Kunena are active on the same site, having two independent timeout values creates a UX inconsistency: a user could appear "online" in CB but "offline" in Kunena (or vice versa) if the timeouts diverge.
+Kunena forum has its own session timeout setting (`sessionTimeOut`, default 1800 seconds) in `Kunena\Forum\Libraries\Config\KunenaConfig`. When both Yak Shaver CB User Online Status and Kunena are active on the same site, having two independent timeout values creates a UX inconsistency: a user could appear "online" in CB but "offline" in Kunena (or vice versa) if the timeouts diverge.
 
 This sub-milestone adds a `timeout_source` parameter to the plugin that allows the administrator to synchronize the timeout with Kunena's configuration instead of maintaining a separate value.
 

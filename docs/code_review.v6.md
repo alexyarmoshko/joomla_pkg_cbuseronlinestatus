@@ -1,4 +1,4 @@
-# Code and Documentation Review - CB User Online Status
+# Code and Documentation Review - Yak Shaver CB User Online Status
 
 **Date**: 2026-02-22
 **Reviewer**: Antigravity (Assistant)

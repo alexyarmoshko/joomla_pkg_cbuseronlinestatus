@@ -1,6 +1,6 @@
 <?php
 /**
- * Upstream hashes field for CB User Online Status XML Manifest.
+ * Upstream hashes field for Yak Shaver CB User Online Status XML Manifest.
  *
  * @package     YakShaver.Plugin.System.Cbuseronlinestatus
  * @author      Yak Shaver <me@kayakshaver.com>
