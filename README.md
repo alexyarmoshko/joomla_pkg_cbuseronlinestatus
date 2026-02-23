@@ -23,9 +23,12 @@ This package applies a configurable timeout (default: 30 minutes) to all session
 
 1. Download `pkg_cbuseronlinestatus-x.y.z.zip` from the [Releases](https://github.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/releases) page.
 2. Install via **System → Install → Extensions** in Joomla admin.
-3. **Enable the plugin** at **System → Manage → Plugins** → search for "CB User Online Status".
-4. Publish the **mod_cbuseronlinestatus** module from **Content → Site Modules** and configure the mode.
-5. Keep using CB's original online module for non-session modes (for example Latest Visitors / Latest Registrations).
+3. **Enable the plugin** at **System → Manage → Plugins** → search for "Yak Shaver CB User Online Status".
+4. Open the plugin configuration, review **Upstream File Tracking**, set **Hashes Verified** to **Verified**, and save.
+5. Publish the **mod_cbuseronlinestatus** module from **Content → Site Modules** and configure the mode.
+6. Keep using CB's original online module for non-session modes (for example Latest Visitors / Latest Registrations).
+
+The plugin computes and stores tracked Community Builder file hashes automatically, but its overrides remain inactive until **Hashes Verified** is set to **Verified** in plugin settings.
 
 ## Configuration
 
@@ -33,14 +36,17 @@ This package applies a configurable timeout (default: 30 minutes) to all session
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| Online Timeout | 1800 | Seconds of inactivity before a user is considered offline |
+| Timeout Source | Manual | `Manual` uses the plugin timeout value below; `Kunena Forum` reads Kunena's `sessionTimeOut` automatically |
+| Online Timeout | 1800* | Seconds of inactivity before a user is considered offline (manual mode); becomes a display-only field in Kunena mode |
+| Tracked CB File Hashes | Auto (display-only) | Read-only SHA256 hashes of the CB files this plugin overrides; computed on first request and refreshed when tracked files change |
+| Hashes Verified | Not Verified | Must be set to `Verified` after reviewing tracked hashes before the plugin activates its overrides; resets to `Not Verified` when tracked files change |
 
 ### Module Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | Display Mode | Online Users | One of: Online Users (1), Online Connections (9), Online Statistics (6), User Census (7) |
-| Runtime Timeout | 1800* | Effective timeout currently used by the module (plugin runtime timeout when available; otherwise the fallback timeout) |
+| Runtime Timeout | 1800** | Effective timeout currently used by the module (plugin runtime timeout when available; otherwise the fallback timeout) |
 | Fallback Timeout | 1800 | Used only when the system plugin does not publish a runtime timeout (for example plugin disabled, not verified, or unavailable) |
 | Limit | 30 | Maximum users shown (modes 1, 9) |
 | Exclude Users | — | Comma-separated user IDs to exclude |
@@ -53,7 +59,9 @@ This package applies a configurable timeout (default: 30 minutes) to all session
 | Load Template | Yes | Include CB's template stylesheet |
 | CB Plugins integration | No | Call CB online-module hook points via `modCBOnlineHelper::getPlugins()` (requires original `mod_comprofileronline` helper) |
 
-`*` The runtime timeout field is display-only in module settings (disabled) and reflects the current effective value at page load.
+`*` In plugin settings, when `Timeout Source` is `Kunena Forum`, the `Online Timeout` field is display-only and shows Kunena's current `sessionTimeOut` value. The previously saved manual timeout is preserved for fallback use.
+
+`**` The runtime timeout field is display-only in module settings (disabled) and reflects the current effective value at page load.
 
 Standard Joomla advanced module settings (layout, module class suffix, caching) are also available and are not listed above.
 
@@ -91,3 +99,4 @@ After upgrading Community Builder, review and re-test before publishing a packag
 ## License
 
 GNU General Public License version 2 or later. See [LICENSE](LICENSE).
+

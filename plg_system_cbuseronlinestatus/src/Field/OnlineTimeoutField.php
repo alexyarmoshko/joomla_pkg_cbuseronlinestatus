@@ -1,6 +1,6 @@
 <?php
 /**
- * Online Timeout field for CB User Online Status XML Manifest.
+ * Online Timeout field for Yak Shaver CB User Online Status XML Manifest.
  *
  * @package     YakShaver.Plugin.System.Cbuseronlinestatus
  * @author      Yak Shaver <me@kayakshaver.com>

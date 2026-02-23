@@ -17,7 +17,7 @@ use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 
 /**
- * Service provider for the CB User Online Status module.
+ * Service provider for the Yak Shaver CB User Online Status module.
  *
  * @since  1.0.0
  */

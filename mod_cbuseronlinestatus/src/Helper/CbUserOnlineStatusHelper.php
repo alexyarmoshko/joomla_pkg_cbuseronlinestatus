@@ -24,7 +24,7 @@ use Joomla\Registry\Registry;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Helper class for the CB User Online Status module.
+ * Helper class for the Yak Shaver CB User Online Status module.
  *
  * @since  1.0.0
  */
