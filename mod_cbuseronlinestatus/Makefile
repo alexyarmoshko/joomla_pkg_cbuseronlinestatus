@@ -22,7 +22,7 @@ ZIP_PATH := $(INSTALL_DIR)/$(ZIP_NAME)
 
 GITHUB_OWNER ?= alexyarmoshko
 GITHUB_REPO ?= joomla_pkg_cbuseronlinestatus
-GITHUB_REF ?= v$(MODULE_VERSION)
+GITHUB_REF ?= $(MODULE_VERSION)
 
 MODULE_FILES := $(MODULE_MANIFEST_XML) services/ src/ tmpl/ language/ index.html
 

@@ -23,7 +23,7 @@ ZIP_PATH := $(INSTALL_DIR)/$(ZIP_NAME)
 
 GITHUB_OWNER ?= alexyarmoshko
 GITHUB_REPO ?= joomla_pkg_cbuseronlinestatus
-GITHUB_REF ?= v$(PLUGIN_VERSION)
+GITHUB_REF ?= $(PLUGIN_VERSION)
 
 PLUGIN_FILES := $(PLUGIN_MANIFEST_XML) services/ src/ language/ index.html
 

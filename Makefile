@@ -56,7 +56,7 @@ dist: clean
 	@SHA256="$$( (command -v sha256sum >/dev/null && sha256sum "$(INST_DIR)/$(PKG_ZIP)" || shasum -a 256 "$(INST_DIR)/$(PKG_ZIP)") | awk '{print $$1}' )"; \
 	echo "Package SHA256: $$SHA256"; \
 	awk -v version="$(VERSION)" \
-	    -v url="https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/v$(VERSION)/$(PKG_ZIP)" \
+	    -v url="https://github.com/$(GITHUB_OWNER)/$(GITHUB_REPO)/releases/download/$(VERSION)/$(PKG_ZIP)" \
 	    -v sha="$$SHA256" '{ \
 		if ($$0 ~ /<version>[^<]+<\/version>/) { \
 			sub(/<version>[^<]+<\/version>/, "<version>" version "</version>"); \
