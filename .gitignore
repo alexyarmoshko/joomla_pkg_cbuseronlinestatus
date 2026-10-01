@@ -2,11 +2,3 @@
 .DS_Store
 Thumbs.db
 installation/
-.vscode/
-.claude/
-.codex/
-.agent/
-AGENTS.*.md
-AGENTS.md
-CLAUDE.md
-GEMINI.md
