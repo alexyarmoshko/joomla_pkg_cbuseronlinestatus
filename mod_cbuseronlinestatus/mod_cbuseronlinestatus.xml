@@ -7,7 +7,7 @@
     <license>GNU General Public License version 2 or later; see LICENSE</license>
     <authorEmail>me@kayakshaver.com</authorEmail>
     <authorUrl>https://www.kayakshaver.com</authorUrl>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <description>MOD_CBUSERONLINESTATUS_XML_DESCRIPTION</description>
     <namespace path="src">Joomla\Module\Cbuseronlinestatus</namespace>
 
@@ -224,9 +224,4 @@
             </fieldset>
         </fields>
     </config>
-
-    <updateservers>
-        <server type="extension" name="Yak Shaver CB User Online Status Module Updates">
-            https://raw.githubusercontent.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/refs/heads/main/mod_cbuseronlinestatus/mod_cbuseronlinestatus.update.xml</server>
-    </updateservers>
 </extension>

@@ -8,7 +8,7 @@
     <license>GNU General Public License version 2 or later; see LICENSE</license>
     <authorEmail>me@kayakshaver.com</authorEmail>
     <authorUrl>https://www.kayakshaver.com</authorUrl>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <description>PKG_CBUSERONLINESTATUS_XML_DESCRIPTION</description>
     <files folder="installation">
         <file type="plugin" group="system" id="cbuseronlinestatus">plg_system_cbuseronlinestatus.zip</file>
@@ -19,6 +19,6 @@
     </languages>
     <updateservers>
         <server type="extension" name="Yak Shaver CB User Online Status Package Updates">
-            https://raw.githubusercontent.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/refs/heads/main/pkg_cbuseronlinestatus.update.xml</server>
+            https://raw.githubusercontent.com/alexyarmoshko/joomla_update_system/refs/heads/main/manifests/pkg_cbuseronlinestatus.update.xml</server>
     </updateservers>
 </extension>

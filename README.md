@@ -21,7 +21,7 @@ This package applies a configurable timeout (default: 30 minutes) to all session
 
 ## Installation
 
-1. Download `pkg_cbuseronlinestatus-x.y.z.zip` from the [Releases](https://github.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/releases) page.
+1. Download `pkg_cbuseronlinestatus-vX-Y-Z.zip` from the [Releases](https://github.com/alexyarmoshko/joomla_pkg_cbuseronlinestatus/releases) page.
 2. Install via **System → Install → Extensions** in Joomla admin.
 3. **Enable the plugin** at **System → Manage → Plugins** → search for "Yak Shaver CB User Online Status".
 4. Open the plugin configuration, review **Upstream File Tracking**, set **Hashes Verified** to **Verified**, and save.
@@ -67,13 +67,25 @@ Standard Joomla advanced module settings (layout, module class suffix, caching) 
 
 ## Building from Source
 
-Requires a POSIX shell environment (use **Git Bash** on Windows) with `make`, `awk`, `sed`, `zip`, and either `sha256sum` or `shasum`.
+Requires a POSIX shell environment (use **Git Bash** on Windows) with `make`, `git`, `awk`, `sed`, PHP 8.1+ with ext-zlib and ext-simplexml, and either `sha256sum` or `shasum`. The ZIPs are written by the vendored `tools/jzip.php`, so a build from the same tag produces the same bytes on any machine.
 
-```bash
-make dist
-```
+| Target | Builds from | Output |
+|---|---|---|
+| `make dist_dev` | the working tree | `installation/dev/`, without `<updateservers>`, for a test site |
+| `make release` | - | runs the lint gate and tags the manifest version |
+| `make dist_release` | the tag, with `HEAD` checked out at it | `installation/release/`: the package ZIP and its update descriptor |
 
-Output ZIPs are written to `installation/`.
+`make lint` checks PHP syntax and manifest XML. `make versions` checks that every manifest declares the package version.
+
+To cut a release:
+
+1. Bump `<version>` in `pkg_cbuseronlinestatus.xml`, both child manifests and `pkg_cbuseronlinestatus.update.xml`, add a `## <version>` heading to `docs/RELEASE.md`, and commit.
+2. Run `make release`, then `make dist_release`. `make release` refuses release notes whose heading still says "unreleased".
+3. Push the commit and the tag `X.Y.Z` to GitHub.
+4. Create the GitHub release for tag `X.Y.Z` and upload `installation/release/pkg_cbuseronlinestatus-vX-Y-Z.zip` to it.
+5. Copy `installation/release/pkg_cbuseronlinestatus.update.xml` over `manifests/pkg_cbuseronlinestatus.update.xml` in `joomla_update_system`, then commit and push it there.
+
+`release`, `dist_release` and `update_manifest` accept only `INSTALL_DIR` and `BUILD_DIR` from the command line. Point them outside the checkout, or at a path `.gitignore` already covers: an untracked output directory makes the next release build refuse a dirty tree. The tracked `pkg_cbuseronlinestatus.update.xml` is a template. Its `<sha256>` stays at the all-zero placeholder, and `make dist_release` refuses to run if it does not.
 
 Release notes for the current package version are in [`RELEASE.md`](docs/RELEASE.md).
 

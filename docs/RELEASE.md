@@ -1,12 +1,29 @@
-# Release Notes - v1.0.0
+# Release Notes
 
-**Release Date:** 2026-02-23
+## 1.0.1 (2026-10-01) — Current Release
 
-## What's New
+### Fixed
+
+- Joomla's update system can now find and install package updates. The 1.0.0 update descriptor had no `<client>` element, so Joomla read it as an administrator extension and never matched it to the installed site package, and its download URL pointed at a tag that does not exist.
+
+### Changed
+
+- Package updates are served from the Yak Shaver update server (`joomla_update_system`) instead of this repository.
+- The system plugin and the module no longer register update sites of their own. They are updated only as part of the package.
+- The release package is built reproducibly from its git tag, so its published SHA256 can be re-derived by rebuilding the tag. The package file is now named `pkg_cbuseronlinestatus-v1-0-1.zip`.
+
+### Upgrade Notes
+
+- Sites on 1.0.0 must install 1.0.1 manually once, from the GitHub release. Joomla may offer 1.0.1 through the old update site, but that update fails with a checksum error. The manual install moves the package to the new update site, and later updates arrive normally.
+- The old update sites for the plugin and the module stay registered after the upgrade. Their descriptors now list no updates, so they are harmless, and you can delete them in **System → Update Sites**.
+
+## 1.0.0 (2026-02-23)
+
+### What's New
 
 Initial release of the Yak Shaver CB User Online Status package.
 
-### System Plugin (`plg_system_cbuseronlinestatus`)
+#### System Plugin (`plg_system_cbuseronlinestatus`)
 
 - **StatusField override** - Applies configurable timeout to the online/offline indicator on profiles and user lists.
 - **MessageTable override** - Applies the same timeout to PMS notification suppression, so offline users correctly receive email notifications.
@@ -16,7 +33,7 @@ Initial release of the Yak Shaver CB User Online Status package.
 - **Optional Kunena timeout synchronization** - **Timeout Source** parameter (`Manual` / `Kunena Forum`) can read Kunena's `sessionTimeOut` at runtime; if Kunena is unavailable, the plugin falls back to the manual timeout and warns in admin.
 - **Admin UI timeout field behavior** - In Kunena mode, the **Online Timeout** field is display-only and does not overwrite the saved manual timeout value when plugin settings are saved.
 
-### Site Module (`mod_cbuseronlinestatus`)
+#### Site Module (`mod_cbuseronlinestatus`)
 
 - **Mode 1 — Online Users** — Lists users with active sessions within the timeout window.
 - **Mode 9 — Online Connections** — Lists online connections of the current user.
@@ -27,21 +44,21 @@ Initial release of the Yak Shaver CB User Online Status package.
 - **Runtime Timeout (display-only)** - Module settings show the effective timeout currently in use (plugin-published runtime timeout when available, otherwise the module fallback timeout).
 - **Fallback Timeout labeling** - The editable module timeout parameter is labeled/documented as a fallback used when the system plugin timeout is unavailable (for example plugin disabled, not verified, or unavailable).
 
-## Changelog
+### Changelog
 
-### Fixed
+#### Fixed
 
 - **(Critical)** Package build now patches the manifest at build time with versioned child ZIP filenames, then restores the source file; all installation artifacts are consistently versioned.
 - **(High)** Prepended autoloader now checks `defined('CBLIB')` before loading override files, preventing hard-stops when other extensions probe CB class names before CB has bootstrapped.
 - **(Medium)** Guest count in statistics mode (mode 6) now applies the same timeout filter as the user online count, eliminating inflated/stale guest totals.
 - **(Medium)** SHA256 injection in `make dist` now replaces the value inside `<sha256>` tags directly, working with empty source tags instead of requiring placeholder tokens.
 
-## Upgrade Notes
+### Upgrade Notes
 
 - Fresh install only (v1.0.0).
 - After installation, **enable the system plugin**, open its settings, review **Upstream File Tracking**, set **Hashes Verified** to **Verified**, then **publish the module**.
 - If you previously patched `StatusField.php` or `mod_comprofileronline.php` manually, revert those patches after installing this package.
 
-## Requirements
+### Requirements
 
 - Joomla 5.x, PHP 8.1+, Community Builder 2.9+
